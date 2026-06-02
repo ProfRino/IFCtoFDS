@@ -1,10 +1,16 @@
 # IFCtoFDS
 
-![Demo](demo/demo.gif)
+IFCtoFDS turns an **IFC** building model — the format every modern BIM tool
+exports — into a ready-to-run **Fire Dynamics Simulator (FDS)** input file,
+so fire-safety engineers can move from architectural geometry to a simulation
+mesh without rebuilding the model by hand.
 
-A browser-based workbench that converts **IFC** building models into geometry for
-**Fire Dynamics Simulator (FDS)**. Open an `.ifc` file, inspect what got imported,
-pick how openings should be represented, then download a ready-to-run `.fds`.
+The whole workbench runs **entirely in your web browser**. There is no
+installation, no backend, no Python environment, and no build step — just open
+`index.html` (or visit the hosted page), load your `.ifc`, and download the
+generated `.fds`.
+
+![Demo](demo/demo.gif)
 
 > **Project Lead:** Prof Rino Lovreglio, PhD — Massey University
 >
