@@ -3,7 +3,6 @@
 [![Latest release](https://img.shields.io/github/v/release/ProfRino/IFCtoFDS?label=latest&color=blue)](https://github.com/ProfRino/IFCtoFDS/releases/latest)
 [![Downloads](https://img.shields.io/github/downloads/ProfRino/IFCtoFDS/total?label=downloads&color=brightgreen)](https://github.com/ProfRino/IFCtoFDS/releases)
 [![License: AGPL-3.0](https://img.shields.io/github/license/ProfRino/IFCtoFDS?label=License&color=yellow)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/ProfRino/IFCtoFDS?style=flat&color=lightgrey)](https://github.com/ProfRino/IFCtoFDS/stargazers)
 
 IFCtoFDS turns an **IFC** building model — the format every modern BIM tool
 exports — into a ready-to-run **Fire Dynamics Simulator (FDS)** input file,
