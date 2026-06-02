@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+title: IFCtoFDS
+message: "If you use this software, please cite it as below."
+type: software
+authors:
+  - given-names: Rino
+    family-names: Lovreglio
+    affiliation: Massey University
+repository-code: "https://github.com/ProfRino/IFCtoFDS"
+url: "https://github.com/ProfRino/IFCtoFDS"
+abstract: >
+  A browser-based workbench that converts IFC building models into Fire
+  Dynamics Simulator (FDS) input geometry. Imports IFC, lets the user choose
+  between HOLE-based and voxelized opening strategies, and emits a ready-to-run
+  .fds file with full source-element provenance.
+license: AGPL-3.0-or-later
+version: "0.1.0"
+date-released: "2026-06-02"

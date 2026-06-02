@@ -1,0 +1,11 @@
+&HEAD CHID='minimal_room', TITLE='Small FDS geometry for browser viewer checks' /
+&TIME T_END=0.0 /
+&MESH ID='Domain', IJK=20,16,8, XB=0,10,0,8,0,4 /
+&SURF ID='WALL', RGB=190,190,190 /
+&OBST ID='Back wall', XB=0,10,7.8,8,0,3, SURF_ID='WALL' /
+&OBST ID='Left wall', XB=0,0.2,0,8,0,3, SURF_ID='WALL' /
+&OBST ID='Right wall', XB=9.8,10,0,8,0,3, SURF_ID='WALL' /
+&OBST ID='Floor', XB=0,10,0,8,0,0.2, SURF_ID='WALL' /
+&VENT ID='Open front', XB=0,10,0,0,0,3, SURF_ID='OPEN' /
+&GEOM ID='Triangular check', VERTS=2,1,0.25, 3,1,0.25, 2.5,1.8,1.4, FACES=1,2,3,1, SURF_ID='WALL' /
+&TAIL /

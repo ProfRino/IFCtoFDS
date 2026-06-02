@@ -1,0 +1,246 @@
+/* Single-column reading layout for guide.html. Reuses the .help-list and .help-keys
+ * styling from app.css so the prose chunks render identically; everything else here
+ * is page-level chrome (topbar, TOC, footer, max-width, type sizes). */
+
+.guide-body {
+    margin: 0;
+    background: #f4f5f8;
+    color: #1f2230;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+}
+
+.guide-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: saturate(140%) blur(10px);
+    border-bottom: 1px solid #e1e4ec;
+    padding: 14px 32px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.guide-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-decoration: none;
+    color: inherit;
+}
+
+.guide-brand .brand-mark {
+    font-weight: 700;
+    color: #d63856;
+    font-size: 18px;
+    letter-spacing: 0.02em;
+}
+
+.guide-back {
+    color: #5a6072;
+    font-size: 13px;
+    transition: color 0.15s ease;
+}
+
+.guide-brand:hover .guide-back {
+    color: #1f2230;
+}
+
+.guide-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #1f2230;
+}
+
+.guide-main {
+    max-width: 760px;
+    margin: 32px auto 80px;
+    padding: 0 32px;
+}
+
+.guide-intro {
+    margin: 0 0 28px;
+    font-size: 16px;
+    color: #4a5060;
+}
+
+.guide-toc {
+    background: #ffffff;
+    border: 1px solid #e1e4ec;
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 0 0 36px;
+}
+
+.guide-toc ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 6px;
+}
+
+.guide-toc a {
+    color: #1f2230;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.guide-toc a::before {
+    content: '#';
+    color: #d63856;
+    margin-right: 8px;
+}
+
+.guide-toc a:hover {
+    color: #d63856;
+}
+
+.guide-section {
+    margin: 0 0 44px;
+    scroll-margin-top: 80px;
+}
+
+.guide-section h2 {
+    margin: 0 0 14px;
+    font-size: 22px;
+    font-weight: 600;
+    color: #1f2230;
+}
+
+.guide-section p {
+    margin: 0 0 14px;
+    color: #2c3142;
+}
+
+.guide-section ol,
+.guide-section ul {
+    margin: 0 0 14px 22px;
+    padding: 0;
+}
+
+.guide-section li {
+    margin-bottom: 6px;
+}
+
+.guide-section code {
+    background: #eef1f5;
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.92em;
+}
+
+.guide-section .help-list {
+    margin: 0 0 14px;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    column-gap: 24px;
+    row-gap: 14px;
+}
+
+.guide-section .help-list dt {
+    font-weight: 600;
+    color: #1f2230;
+}
+
+.guide-section .help-list dd {
+    margin: 0;
+    color: #2c3142;
+}
+
+.guide-section .help-keys {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+}
+
+.guide-section .help-keys th {
+    text-align: left;
+    width: 200px;
+    padding: 8px 12px 8px 0;
+    vertical-align: top;
+    color: #1f2230;
+    font-weight: 600;
+}
+
+.guide-section .help-keys td {
+    padding: 8px 0;
+    vertical-align: top;
+    color: #2c3142;
+}
+
+.guide-section kbd {
+    display: inline-block;
+    padding: 1px 6px;
+    margin: 0 2px;
+    border: 1px solid #c8ccd6;
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: #ffffff;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    font-size: 0.85em;
+    color: #1f2230;
+}
+
+.guide-footer {
+    border-top: 1px solid #e1e4ec;
+    padding: 18px 32px;
+    text-align: center;
+    color: #6a7180;
+    font-size: 13px;
+    background: #ffffff;
+}
+
+/* Dark theme — uses prefers-color-scheme so the guide page tracks the OS theme even when
+ * opened standalone (the main app's manual toggle doesn't reach this page). */
+@media (prefers-color-scheme: dark) {
+    .guide-body {
+        background: #1a1a2e;
+        color: #d5d8e2;
+    }
+    .guide-topbar {
+        background: rgba(28, 30, 48, 0.92);
+        border-bottom-color: #2a2d40;
+    }
+    .guide-title,
+    .guide-brand,
+    .guide-section h2,
+    .guide-section .help-list dt,
+    .guide-section .help-keys th {
+        color: #ebedf3;
+    }
+    .guide-back {
+        color: #9ba0b0;
+    }
+    .guide-brand:hover .guide-back {
+        color: #ebedf3;
+    }
+    .guide-intro,
+    .guide-section p,
+    .guide-section .help-list dd,
+    .guide-section .help-keys td {
+        color: #c3c8d2;
+    }
+    .guide-toc,
+    .guide-footer {
+        background: #22243a;
+        border-color: #2a2d40;
+    }
+    .guide-toc a {
+        color: #d5d8e2;
+    }
+    .guide-section code {
+        background: #2a2d40;
+        color: #e6e9f1;
+    }
+    .guide-section kbd {
+        background: #2a2d40;
+        border-color: #3a3e58;
+        color: #e6e9f1;
+    }
+}

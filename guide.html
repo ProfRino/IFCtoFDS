@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IFCtoFDS Guide</title>
+    <link rel="stylesheet" href="css/app.css">
+    <link rel="stylesheet" href="css/guide.css">
+</head>
+<body class="guide-body">
+    <header class="guide-topbar">
+        <a href="index.html" class="guide-brand">
+            <span class="brand-mark">IFCtoFDS</span>
+            <span class="guide-back">← back to app</span>
+        </a>
+        <h1 class="guide-title">Guide</h1>
+    </header>
+
+    <main class="guide-main">
+        <p class="guide-intro">
+            Review IFC geometry, convert it into FDS geometry, then inspect the result before saving.
+        </p>
+
+        <nav class="guide-toc" aria-label="Guide contents">
+            <ul>
+                <li><a href="#quick-start">Quick Start</a></li>
+                <li><a href="#conversion">Conversion options</a></li>
+                <li><a href="#strategy">Geometry strategy</a></li>
+                <li><a href="#toolbar">Toolbar and view</a></li>
+                <li><a href="#selection">Selection, walk mode &amp; keyboard</a></li>
+            </ul>
+        </nav>
+
+        <section id="quick-start" class="guide-section">
+            <h2>Quick Start</h2>
+            <ol>
+                <li>Open a building <code>.ifc</code> file and inspect the imported model.</li>
+                <li>Pick an <strong>Opening approach</strong> (HOLE is recommended), set FDS cell / voxel size, and the aperture policy.</li>
+                <li>Press <strong>Convert to FDS</strong>. Conversion runs in the background.</li>
+                <li>Use <strong>Overlay</strong>, <strong>FDS</strong>, and <strong>IFC</strong> views to compare geometry. Toggle <strong>FDS HOLE</strong> to show or hide carved openings.</li>
+                <li>Use the save icon to download the converted <code>.fds</code> file.</li>
+            </ol>
+        </section>
+
+        <section id="conversion" class="guide-section">
+            <h2>Conversion</h2>
+            <dl class="help-list">
+                <dt>FDS cell size</dt><dd>Target simulation mesh resolution written to <code>&amp;MESH</code>.</dd>
+                <dt>Voxel size</dt><dd>Grid used to approximate IFC solids as merged <code>OBST</code> blocks.</dd>
+                <dt>Opening margin</dt><dd>Extends opening masks through walls so doors and windows remain clear.</dd>
+                <dt>Hole voxel policy</dt><dd><strong>Smaller</strong> retains borderline wall cells; <strong>Larger</strong> removes them for a wider opening. Only relevant in Voxelization mode.</dd>
+                <dt>Opening approach</dt><dd><strong>HOLE (recommended)</strong> emits one continuous <code>&amp;OBST</code> per axis-aligned wall/slab plus rectangular <code>&amp;HOLE</code> cutouts — cleaner FDS file and exact opening rectangles. <strong>Voxelization (legacy)</strong> emits a cluster of small <code>&amp;OBST</code>s that stair-step around each opening; use it for arched / curved / non-axis-aligned openings that <code>&amp;HOLE</code> cannot represent.</dd>
+                <dt>OBST threshold</dt><dd>Lower = more elements voxelize into <code>OBST</code> (catches chamfered walls). Higher = stricter; only purely boxy shapes voxelize, the rest stay as detailed <code>GEOM</code>.</dd>
+                <dt>Closed window/door fills</dt><dd>Adds colored airtight <code>&amp;OBST</code> closures (window blue / door brown) in the opening volume. With HOLE the closure perfectly refills the carved rectangle; the closure is written after every <code>&amp;HOLE</code> so no HOLE can carve it.</dd>
+                <dt>Furniture, MEP and proxy solids</dt><dd>Includes review objects as blockers only when they should affect smoke flow.</dd>
+            </dl>
+        </section>
+
+        <section id="strategy" class="guide-section">
+            <h2>Geometry strategy</h2>
+            <p>Walls, slabs, rectangular columns, openings, doors, and simple blocks become <code>&amp;OBST</code>. Curved or irregular objects such as complex stairs remain detailed triangle <code>&amp;GEOM</code> and render slightly darker so the two outputs are easy to tell apart.</p>
+            <p>L / U / C / T-shaped slabs whose footprint covers less than 95% of their bounding rectangle are routed to voxelization so the outline is traced cell-by-cell instead of being collapsed to a rectangular bounding OBST.</p>
+            <p>Flat slabs whose IFC representation the parser couldn't extrude (some Revit-exported floors and tapered roofs) are auto-inflated to a default thickness during voxelization so their outline is preserved instead of falling out as a zero-volume polygon.</p>
+            <p>Non-convex BREP outlines (the case for school-style floor slabs whose source is an IfcFaceBasedSurfaceModel) are re-triangulated with <code>earcut</code> instead of a naïve fan from vertex 0 — a fan only works for convex polygons and used to make L / U slabs voxelize as their bounding rectangle.</p>
+            <p>Select generated <code>GEOM</code> items and press <strong>Voxelize selected GEOM to OBST</strong> to reroute those items through voxelization. (This re-converts in place without replaying the reveal animation.)</p>
+        </section>
+
+        <section id="toolbar" class="guide-section">
+            <h2>Toolbar and view</h2>
+            <dl class="help-list">
+                <dt>Open IFC</dt><dd>Loads a local IFC building model.</dd>
+                <dt>Moon / sun</dt><dd>Switches between the light and dark interfaces.</dd>
+                <dt>Footprints</dt><dd>Enters first-person walk mode. Click a floor or stair surface to place yourself.</dd>
+                <dt>Reset</dt><dd>Fits the camera back around the visible model.</dd>
+                <dt>Save</dt><dd>Downloads the most recent generated FDS file.</dd>
+                <dt>Layer checks</dt><dd>Show or hide FDS meshes, OBST, HOLE, VENT, GEOM, IFC references, optional IFC edges, and the ground grid. HOLE markers render as ghost-cyan boxes so the closure colour behind them shows through.</dd>
+                <dt>Opacity sliders</dt><dd>Fade IFC and FDS independently. Zero hides the layer completely.</dd>
+                <dt>Clip bars</dt><dd>Six sliders along the bottom of the viewer cut the scene to a sub-volume; for FDS, primitives whose full bbox sits inside the clip stay visible and the rest disappear cleanly (no slicing through).</dd>
+            </dl>
+        </section>
+
+        <section id="selection" class="guide-section">
+            <h2>Selection, walk mode &amp; keyboard</h2>
+            <p>Clicks pick the closest visible hit first, so a click on a visible front wall lands on that wall rather than a HOLE or back-wall element behind it.</p>
+            <p>In walk mode, clicks place you on the actual floor below the cursor — not the top of whatever surface the ray first crosses — so clicking on a wall, beam, or door header still drops you onto the room's floor. Door closures and HOLE volumes are passable so you can step through doorways.</p>
+            <table class="help-keys">
+                <tbody>
+                    <tr><th>Click</th><td>Select one object and inspect its IFC source mapping.</td></tr>
+                    <tr><th><kbd>Shift</kbd> + click</th><td>Add or remove objects from a multi-selection.</td></tr>
+                    <tr><th><kbd>Shift</kbd> + drag</th><td>Marquee-select every OBST / HOLE / GEOM / IFC mesh whose centre lies inside the rectangle.</td></tr>
+                    <tr><th><kbd>1</kbd>–<kbd>6</kbd>, <kbd>0</kbd></th><td>Snap to front / back / left / right / top / bottom and isometric camera views.</td></tr>
+                    <tr><th><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd></th><td>Orbit the camera around the model. <kbd>Shift</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> dollies in/out; <kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd> strafes the pivot.</td></tr>
+                    <tr><th><kbd>Ctrl</kbd> + <kbd>Z</kbd></th><td>Undo the last delete or voxelize action.</td></tr>
+                    <tr><th><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></th><td>Walk horizontally.</td></tr>
+                    <tr><th><kbd>Space</kbd></th><td>Jump. Stairs are climbed automatically while walking.</td></tr>
+                    <tr><th><kbd>Shift</kbd></th><td>Walk faster.</td></tr>
+                    <tr><th><kbd>Esc</kbd></th><td>Leave walk mode and return to orbit inspection.</td></tr>
+                </tbody>
+            </table>
+        </section>
+    </main>
+
+    <footer class="guide-footer">
+        <span>&copy; Prof Rino Lovreglio, PhD &mdash; Massey University</span>
+    </footer>
+</body>
+</html>

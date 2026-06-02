@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>IFCtoFDS</title>
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+    <main class="app-shell">
+        <header class="topbar">
+            <div class="brand">
+                <span class="brand-mark">IFCtoFDS</span>
+            </div>
+
+            <div class="file-actions" aria-label="File actions">
+                <label class="button primary" title="Open an IFC model">
+                    <i data-lucide="building-2"></i>
+                    <span>Open IFC</span>
+                    <input id="ifc-file" type="file" accept=".ifc,.ifczip,.ifcfds">
+                </label>
+                <button id="toggle-theme" class="icon-button" type="button" title="Switch to dark theme" aria-label="Switch to dark theme">
+                    <i data-lucide="moon"></i>
+                </button>
+                <button id="toggle-walk" class="icon-button" type="button" title="Enter walk mode" aria-label="Enter walk mode">
+                    <i data-lucide="footprints"></i>
+                </button>
+                <button id="open-help" class="icon-button" type="button" title="Open help guide" aria-label="Open help guide">
+                    <i data-lucide="circle-help"></i>
+                </button>
+                <button id="reset-camera" class="icon-button" type="button" title="Reset camera">
+                    <i data-lucide="scan"></i>
+                </button>
+                <button id="save-processed" class="icon-button" type="button" title="Save processed IFC for instant reopen" disabled>
+                    <i data-lucide="hard-drive-download"></i>
+                </button>
+                <button id="save-fds" class="icon-button" type="button" title="Save converted FDS" disabled>
+                    <i data-lucide="save"></i>
+                </button>
+            </div>
+        </header>
+
+        <section class="workspace">
+            <aside class="sidebar" aria-label="Workbench controls">
+                <section class="panel">
+                    <h2>Sources</h2>
+                    <div class="source-row">
+                        <span>Output</span>
+                        <strong id="fds-source-name">No conversion</strong>
+                    </div>
+                    <div class="source-row">
+                        <span>IFC</span>
+                        <strong id="ifc-source-name">No file</strong>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <h2>View</h2>
+                    <div class="segmented" role="group" aria-label="View mode">
+                        <button class="active" type="button" data-view-mode="overlay">Overlay</button>
+                        <button type="button" data-view-mode="fds">FDS</button>
+                        <button type="button" data-view-mode="ifc">IFC</button>
+                    </div>
+                    <label class="slider-row">
+                        <span>FDS opacity</span>
+                        <input id="fds-opacity" type="range" min="0" max="1" value="0.72" step="0.02">
+                    </label>
+                    <label class="slider-row">
+                        <span>IFC opacity</span>
+                        <input id="ifc-opacity" type="range" min="0" max="1" value="1" step="0.02">
+                    </label>
+                    <label class="check-row">
+                        <span>Element edges</span>
+                        <input id="show-ifc-edges" type="checkbox" checked>
+                    </label>
+                    <label class="check-row">
+                        <span>Structure and shell</span>
+                        <input id="show-structure" type="checkbox" checked>
+                    </label>
+                    <label class="check-row">
+                        <span>Doors and windows</span>
+                        <input id="show-fills" type="checkbox" checked>
+                    </label>
+                    <label class="check-row">
+                        <span>Other IFC products</span>
+                        <input id="show-other" type="checkbox" checked>
+                    </label>
+                    <label class="check-row">
+                        <span>FDS OBST</span>
+                        <input id="show-obst" type="checkbox" checked>
+                    </label>
+                    <label class="check-row">
+                        <span>FDS HOLE</span>
+                        <input id="show-hole" type="checkbox" checked>
+                    </label>
+                    <label class="check-row">
+                        <span>FDS GEOM</span>
+                        <input id="show-geom" type="checkbox" checked>
+                    </label>
+                    <label class="check-row">
+                        <span>Ground grid</span>
+                        <input id="show-grid" type="checkbox" checked>
+                    </label>
+                </section>
+
+                <section class="panel">
+                    <h2>Geometry</h2>
+                    <dl class="metrics">
+                        <div><dt>Meshes</dt><dd id="count-meshes">0</dd></div>
+                        <div><dt>OBST</dt><dd id="count-obsts">0</dd></div>
+                        <div><dt>VENT</dt><dd id="count-vents">0</dd></div>
+                        <div><dt>GEOM</dt><dd id="count-geoms">0</dd></div>
+                        <div><dt>Triangles</dt><dd id="count-triangles">0</dd></div>
+                        <div><dt>IFC</dt><dd id="count-ifc">0</dd></div>
+                        <div><dt>FDS-ready</dt><dd id="count-ifc-convertible">0</dd></div>
+                    </dl>
+                </section>
+
+                <section class="panel">
+                    <h2>IFC Mapping</h2>
+                    <div id="ifc-mapping" class="mapping-list">
+                        <p class="empty-state">Open an IFC model to review its FDS mapping.</p>
+                    </div>
+                </section>
+
+                <section class="panel diagnostics-panel">
+                    <h2>Checks</h2>
+                    <ol id="diagnostics" class="diagnostics"></ol>
+                </section>
+
+            </aside>
+
+            <section class="viewer-area">
+                <div id="viewer" class="viewer"></div>
+                <div id="walk-hud" class="walk-hud" hidden>
+                    <span id="walk-hud-status"></span>
+                </div>
+                <div id="marquee" class="marquee" hidden></div>
+                <div id="clip-panel" class="clip-panel" hidden>
+                    <span class="clip-panel-title">CLIP</span>
+                    <span class="clip-axis-label">X</span>
+                    <div class="clip-num-wrap">
+                        <button class="clip-step" data-target="clip-xmin" data-dir="-1" type="button">&#9660;</button>
+                        <input type="text" class="clip-num-input" id="clip-xmin-val">
+                        <button class="clip-step" data-target="clip-xmin" data-dir="1" type="button">&#9650;</button>
+                    </div>
+                    <input type="range" id="clip-xmin" class="clip-slider">
+                    <input type="range" id="clip-xmax" class="clip-slider">
+                    <div class="clip-num-wrap">
+                        <button class="clip-step" data-target="clip-xmax" data-dir="-1" type="button">&#9660;</button>
+                        <input type="text" class="clip-num-input" id="clip-xmax-val">
+                        <button class="clip-step" data-target="clip-xmax" data-dir="1" type="button">&#9650;</button>
+                    </div>
+                    <span class="clip-axis-label">Y</span>
+                    <div class="clip-num-wrap">
+                        <button class="clip-step" data-target="clip-ymin" data-dir="-1" type="button">&#9660;</button>
+                        <input type="text" class="clip-num-input" id="clip-ymin-val">
+                        <button class="clip-step" data-target="clip-ymin" data-dir="1" type="button">&#9650;</button>
+                    </div>
+                    <input type="range" id="clip-ymin" class="clip-slider">
+                    <input type="range" id="clip-ymax" class="clip-slider">
+                    <div class="clip-num-wrap">
+                        <button class="clip-step" data-target="clip-ymax" data-dir="-1" type="button">&#9660;</button>
+                        <input type="text" class="clip-num-input" id="clip-ymax-val">
+                        <button class="clip-step" data-target="clip-ymax" data-dir="1" type="button">&#9650;</button>
+                    </div>
+                    <span class="clip-axis-label">Z</span>
+                    <div class="clip-num-wrap">
+                        <button class="clip-step" data-target="clip-zmin" data-dir="-1" type="button">&#9660;</button>
+                        <input type="text" class="clip-num-input" id="clip-zmin-val">
+                        <button class="clip-step" data-target="clip-zmin" data-dir="1" type="button">&#9650;</button>
+                    </div>
+                    <input type="range" id="clip-zmin" class="clip-slider">
+                    <input type="range" id="clip-zmax" class="clip-slider">
+                    <div class="clip-num-wrap">
+                        <button class="clip-step" data-target="clip-zmax" data-dir="-1" type="button">&#9660;</button>
+                        <input type="text" class="clip-num-input" id="clip-zmax-val">
+                        <button class="clip-step" data-target="clip-zmax" data-dir="1" type="button">&#9650;</button>
+                    </div>
+                    <button id="clip-reset" class="button" type="button">Reset</button>
+                </div>
+                <div id="ifc-loading" class="ifc-loading" hidden role="status" aria-live="polite">
+                    <div class="ifc-loading-label">
+                        <span id="ifc-loading-title">Loading IFC…</span>
+                        <span id="ifc-loading-percent"></span>
+                    </div>
+                    <div class="ifc-loading-bar"><div id="ifc-loading-fill" class="ifc-loading-fill is-indeterminate"></div></div>
+                    <div id="ifc-loading-stage" class="ifc-loading-stage"></div>
+                </div>
+            </section>
+
+            <aside class="conversion-sidebar" aria-label="Conversion options">
+                <section class="panel conversion-panel">
+                    <h2>Conversion</h2>
+                    <label class="number-row">
+                        <span>FDS cell size</span>
+                        <span class="number-input">
+                            <input id="mesh-cell-size" type="number" min="0.05" max="5" step="0.05" value="0.10">
+                            <small>m</small>
+                        </span>
+                    </label>
+                    <label class="number-row">
+                        <span>Voxel size</span>
+                        <span class="number-input">
+                            <input id="voxel-size" type="number" min="0.05" max="2" step="0.05" value="0.10">
+                            <small>m</small>
+                        </span>
+                    </label>
+                    <label class="number-row">
+                        <span>Opening margin</span>
+                        <span class="number-input">
+                            <input id="opening-thickening" type="number" min="0" max="1" step="0.01" value="0.05">
+                            <small>m</small>
+                        </span>
+                    </label>
+                    <label class="number-row">
+                        <span>Hole voxel policy</span>
+                        <select id="opening-voxel-policy" class="select-input">
+                            <option value="smaller" selected>Smaller holes</option>
+                            <option value="larger">Larger holes</option>
+                        </select>
+                    </label>
+                    <label class="number-row" title="HOLE approach: one continuous &amp;OBST per axis-aligned wall/slab with rectangular &amp;HOLE cutouts. Cleaner FDS file, exact rectangles. Voxelization: every wall becomes a cluster of small &amp;OBSTs that stair-step around the opening — handles arched / chamfered / non-axis-aligned shapes that HOLE can't.">
+                        <span>Opening approach</span>
+                        <select id="conversion-approach" class="select-input">
+                            <option value="hole" selected>HOLE (recommended)</option>
+                            <option value="voxel">Voxelization (legacy)</option>
+                        </select>
+                    </label>
+                    <label class="slider-row with-value" title="Lower = more elements voxelize into OBST (catches chamfered walls). Higher = stricter (only purely boxy shapes voxelize, rest stay as detailed GEOM).">
+                        <span>OBST threshold</span>
+                        <input id="obst-threshold" type="range" min="0.5" max="1" step="0.05" value="0.8">
+                        <input id="obst-threshold-val" type="text" class="slider-value-input" value="0.80">
+                    </label>
+                    <label class="check-row">
+                        <input id="include-fill-solids" type="checkbox">
+                        <span>Closed window/door fills</span>
+                    </label>
+                    <label class="check-row" title="Include furniture, MEP components, proxies, and assemblies as blocking FDS solids.">
+                        <input id="include-review-solids" type="checkbox">
+                        <span>Include furniture, MEP and proxy solids</span>
+                    </label>
+
+                    <button id="convert-ifc" class="button primary conversion-action" type="button" title="Convert IFC to FDS geometry" disabled>
+                        <i data-lucide="refresh-cw"></i>
+                        <span>Convert to FDS</span>
+                    </button>
+                    <button id="convert-selected-obst" class="button conversion-action secondary-action" type="button" title="Voxelize the selected generated GEOM objects into OBST geometry" disabled>
+                        <i data-lucide="box"></i>
+                        <span>Voxelize selected GEOM to OBST</span>
+                    </button>
+                    <button id="delete-selected-ifc" class="button conversion-action secondary-action" type="button" title="Exclude the selected IFC element(s) from the FDS export" disabled>
+                        <i data-lucide="trash-2"></i>
+                        <span>Delete selected from export</span>
+                    </button>
+                    <button id="undo-last" class="button conversion-action secondary-action" type="button" title="Undo last delete or voxelize (Ctrl+Z)" disabled>
+                        <i data-lucide="undo-2"></i>
+                        <span>Undo last change</span>
+                    </button>
+                </section>
+                <section id="inspect-card" class="inspect-card" hidden>
+                    <div class="inspect-title" id="inspect-title">Selection</div>
+                    <pre id="inspect-body"></pre>
+                </section>
+            </aside>
+        </section>
+        <footer class="footer-bar">
+            <span class="footer-meta">
+                <button type="button" id="footer-help" class="footer-link">Guide</button>
+                <span aria-hidden="true">&middot;</span>
+                <button type="button" id="open-credits" class="footer-link">Credits</button>
+            </span>
+        </footer>
+    </main>
+
+    <section id="credits-modal" class="help-modal" role="dialog" aria-modal="true" aria-labelledby="credits-title" hidden>
+        <div class="help-backdrop" data-close-credits></div>
+        <article class="help-card credits-card">
+            <header class="help-header">
+                <h2 id="credits-title">About IFCtoFDS</h2>
+                <button id="close-credits" class="icon-button" type="button" title="Close" aria-label="Close">
+                    <i data-lucide="x"></i>
+                </button>
+            </header>
+            <div class="help-body">
+                <section>
+                    <p>&copy; Prof Rino Lovreglio, PhD &mdash; Massey University</p>
+                    <p style="margin-top:8px;color:var(--muted);font-size:13px;line-height:1.5"><em>No responsibility is taken for the use or output of these tools.</em></p>
+                </section>
+            </div>
+        </article>
+    </section>
+
+    <section id="help-modal" class="help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title" hidden>
+        <div class="help-backdrop" data-close-help></div>
+        <article class="help-card">
+            <header class="help-header">
+                <div>
+                    <h2 id="help-title">IFCtoFDS Guide</h2>
+                    <p>Review IFC geometry, convert it into FDS geometry, then inspect the result before saving.</p>
+                </div>
+                <button id="close-help" class="icon-button" type="button" title="Close help guide" aria-label="Close help guide">
+                    <i data-lucide="x"></i>
+                </button>
+            </header>
+            <div class="help-body">
+                <section>
+                    <h3>Quick Start</h3>
+                    <ol>
+                        <li>Open a building <code>.ifc</code> file and inspect the imported model.</li>
+                        <li>Pick an <strong>Opening approach</strong> (HOLE is recommended), set FDS cell / voxel size, and the aperture policy.</li>
+                        <li>Press <strong>Convert to FDS</strong>. Conversion runs in the background.</li>
+                        <li>Use <strong>Overlay</strong>, <strong>FDS</strong>, and <strong>IFC</strong> views to compare geometry. Toggle <strong>FDS HOLE</strong> to show or hide carved openings.</li>
+                        <li>Use the save icon to download the converted <code>.fds</code> file.</li>
+                    </ol>
+                </section>
+                <section>
+                    <h3>Conversion</h3>
+                    <dl class="help-list">
+                        <dt>FDS cell size</dt><dd>Target simulation mesh resolution written to <code>&amp;MESH</code>.</dd>
+                        <dt>Voxel size</dt><dd>Grid used to approximate IFC solids as merged <code>OBST</code> blocks.</dd>
+                        <dt>Opening margin</dt><dd>Extends opening masks through walls so doors and windows remain clear.</dd>
+                        <dt>Hole voxel policy</dt><dd><strong>Smaller</strong> retains borderline wall cells; <strong>Larger</strong> removes them for a wider opening. Only relevant in Voxelization mode.</dd>
+                        <dt>Opening approach</dt><dd><strong>HOLE (recommended)</strong> emits one continuous <code>&amp;OBST</code> per axis-aligned wall/slab plus rectangular <code>&amp;HOLE</code> cutouts — cleaner FDS file and exact opening rectangles. <strong>Voxelization (legacy)</strong> emits a cluster of small <code>&amp;OBST</code>s that stair-step around each opening; use it for arched / curved / non-axis-aligned openings that <code>&amp;HOLE</code> cannot represent.</dd>
+                        <dt>OBST threshold</dt><dd>Lower = more elements voxelize into <code>OBST</code> (catches chamfered walls). Higher = stricter; only purely boxy shapes voxelize, the rest stay as detailed <code>GEOM</code>.</dd>
+                        <dt>Closed window/door fills</dt><dd>Adds colored airtight <code>&amp;OBST</code> closures (window blue / door brown) in the opening volume. With HOLE the closure perfectly refills the carved rectangle; the closure is written after every <code>&amp;HOLE</code> so no HOLE can carve it.</dd>
+                        <dt>Furniture, MEP and proxy solids</dt><dd>Includes review objects as blockers only when they should affect smoke flow.</dd>
+                    </dl>
+                </section>
+                <section>
+                    <h3>Geometry Strategy</h3>
+                    <p>Walls, slabs, rectangular columns, openings, doors, and simple blocks become <code>&amp;OBST</code>. Curved or irregular objects such as complex stairs remain detailed triangle <code>&amp;GEOM</code> and render slightly darker so the two outputs are easy to tell apart.</p>
+                    <p>Flat slabs whose IFC representation the parser couldn't extrude (some Revit-exported floors and tapered roofs) are auto-inflated to a default thickness during voxelization so their L / U / T floor outline is preserved instead of being collapsed to a single bounding box.</p>
+                    <p>Select generated <code>GEOM</code> items and press <strong>Voxelize selected GEOM to OBST</strong> to reroute those items through voxelization. (This re-converts in place without replaying the reveal animation.)</p>
+                </section>
+                <section>
+                    <h3>Toolbar and View</h3>
+                    <dl class="help-list">
+                        <dt>Open IFC</dt><dd>Loads a local IFC building model.</dd>
+                        <dt>Moon / sun</dt><dd>Switches between the light and dark interfaces.</dd>
+                        <dt>Footprints</dt><dd>Enters first-person walk mode. Click a floor or stair surface to place yourself.</dd>
+                        <dt>Reset</dt><dd>Fits the camera back around the visible model.</dd>
+                        <dt>Save</dt><dd>Downloads the most recent generated FDS file.</dd>
+                        <dt>Layer checks</dt><dd>Show or hide FDS meshes, OBST, HOLE, VENT, GEOM, IFC references, optional IFC edges, and the ground grid. HOLE markers render as ghost-cyan boxes so the closure colour behind them shows through.</dd>
+                        <dt>Opacity sliders</dt><dd>Fade IFC and FDS independently. Zero hides the layer completely.</dd>
+                        <dt>Clip bars</dt><dd>Six sliders along the bottom of the viewer cut the scene to a sub-volume; for FDS, primitives whose full bbox sits inside the clip stay visible and the rest disappear cleanly (no slicing through).</dd>
+                    </dl>
+                </section>
+                <section>
+                    <h3>Selection and Walk Mode</h3>
+                    <p>Clicks pick the closest visible hit first, so a click on a visible front wall lands on that wall rather than a HOLE or back-wall element behind it.</p>
+                    <table class="help-keys">
+                        <tbody>
+                            <tr><th>Click</th><td>Select one object and inspect its IFC source mapping.</td></tr>
+                            <tr><th><kbd>Shift</kbd> + click</th><td>Add or remove objects from a multi-selection.</td></tr>
+                            <tr><th><kbd>Shift</kbd> + drag</th><td>Marquee-select every OBST / HOLE / GEOM / IFC mesh whose centre lies inside the rectangle.</td></tr>
+                            <tr><th><kbd>1</kbd>–<kbd>6</kbd>, <kbd>0</kbd></th><td>Snap to front / back / left / right / top / bottom and isometric camera views.</td></tr>
+                            <tr><th><kbd>←</kbd><kbd>→</kbd><kbd>↑</kbd><kbd>↓</kbd></th><td>Orbit the camera around the model. <kbd>Shift</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> dollies in/out; <kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd> strafes the pivot.</td></tr>
+                            <tr><th><kbd>Ctrl</kbd> + <kbd>Z</kbd></th><td>Undo the last delete or voxelize action.</td></tr>
+                            <tr><th><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></th><td>Walk horizontally.</td></tr>
+                            <tr><th><kbd>Space</kbd></th><td>Jump. Stairs are climbed automatically while walking.</td></tr>
+                            <tr><th><kbd>Shift</kbd></th><td>Walk faster.</td></tr>
+                            <tr><th><kbd>Esc</kbd></th><td>Leave walk mode and return to orbit inspection.</td></tr>
+                        </tbody>
+                    </table>
+                </section>
+            </div>
+        </article>
+    </section>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="js/vendor/earcut.min.js"></script>
+
+    <script src="js/core/namespace.js"></script>
+    <script src="js/core/diagnostics.js"></script>
+    <script src="js/fds/namelist-parser.js"></script>
+    <script src="js/fds/fds-geometry-adapter.js"></script>
+    <script src="js/fds/fds-exporter.js"></script>
+    <script src="js/workers/fds-export-worker-inline.js"></script>
+    <script src="js/workers/ifc-parse-shard-worker-inline.js"></script>
+    <script src="js/workers/export-worker-factory.js"></script>
+    <script src="js/workers/ifc-parse-factory.js"></script>
+    <script src="js/ifc/ifc-adapter.js"></script>
+    <script src="js/ifc/ifc-meta.js"></script>
+    <script src="js/ifc/web-ifc-display.js"></script>
+    <script src="js/ifc/processed-file.js"></script>
+    <script src="js/compare/checks.js"></script>
+    <script src="js/viewer/scene-viewer.js"></script>
+    <script src="js/app-controller.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>IFCtoFDS direct-file worker check</title>
+</head>
+<body>
+    <output id="result">Checking direct-file worker...</output>
+
+    <script src="../js/core/namespace.js"></script>
+    <script src="../js/workers/fds-export-worker-inline.js"></script>
+    <script src="../js/workers/export-worker-factory.js"></script>
+    <script>
+        (function () {
+            var result = document.getElementById('result');
+            try {
+                var handle = window.IfcFds.workers.createExportWorker();
+                handle.worker.onmessage = function (event) {
+                    var response = event.data || {};
+                    result.textContent = response.type === 'complete'
+                        ? 'PASS: direct-file background worker completed.'
+                        : 'FAIL: ' + (response.message || 'unexpected worker response');
+                    handle.worker.terminate();
+                    if (handle.url) URL.revokeObjectURL(handle.url);
+                };
+                handle.worker.onerror = function (event) {
+                    result.textContent = 'FAIL: ' + (event.message || 'worker startup failed');
+                };
+                handle.worker.postMessage({
+                    type: 'export',
+                    requestId: 1,
+                    ifcModel: { elements: [] },
+                    options: { mode: 'hybrid', cellSize: 0.1, voxelSize: 0.1 }
+                });
+            } catch (error) {
+                result.textContent = 'FAIL: ' + (error && error.message ? error.message : String(error));
+            }
+        })();
+    </script>
+</body>
+</html>

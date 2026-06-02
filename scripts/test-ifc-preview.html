@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>IFCtoFDS IFC preview check</title>
+    <style>
+        html,
+        body,
+        #viewer {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="viewer"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+    <script src="../js/vendor/earcut.min.js"></script>
+    <script src="../js/core/namespace.js"></script>
+    <script src="../js/core/diagnostics.js"></script>
+    <script src="../js/ifc/ifc-adapter.js"></script>
+    <script src="../js/viewer/scene-viewer.js"></script>
+    <script>
+        var params = new URLSearchParams(window.location.search);
+        var fileName = params.get('file') || 'AC20-FZK-Haus.ifc';
+        var opacity = Number(params.get('opacity') || 1);
+
+        fetch('../examples/' + encodeURIComponent(fileName))
+            .then(function (response) { return response.text(); })
+            .then(function (text) {
+                var adapter = new window.IfcFds.ifc.IfcAdapter();
+                var model = adapter.parse(text, fileName);
+                var viewer = new window.IfcFds.viewer.SceneViewer(document.getElementById('viewer'));
+                viewer.loadIfcModel(model);
+                viewer.setIfcOpacity(opacity);
+                if (params.get('reference') === '1') viewer.setLayerVisible('ifcReference', true);
+                if (params.get('focus') === 'stairs') {
+                    var stairBounds = model.elements
+                        .filter(function (element) {
+                            return ['IFCSTAIRFLIGHT', 'IFCMEMBER', 'IFCRAILING'].indexOf(element.ifcType) !== -1;
+                        })
+                        .reduce(function (bounds, element) {
+                            if (!bounds) return Object.assign({}, element.bounds);
+                            bounds.xmin = Math.min(bounds.xmin, element.bounds.xmin);
+                            bounds.xmax = Math.max(bounds.xmax, element.bounds.xmax);
+                            bounds.ymin = Math.min(bounds.ymin, element.bounds.ymin);
+                            bounds.ymax = Math.max(bounds.ymax, element.bounds.ymax);
+                            bounds.zmin = Math.min(bounds.zmin, element.bounds.zmin);
+                            bounds.zmax = Math.max(bounds.zmax, element.bounds.zmax);
+                            return bounds;
+                        }, null);
+                    viewer.fitToBounds(stairBounds);
+                }
+            });
+    </script>
+</body>
+</html>
