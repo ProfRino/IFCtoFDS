@@ -80,11 +80,16 @@ Open **https://profrino.github.io/IFCtoFDS/** in any modern browser. Click
 **Opening approach** in the right-hand panel, then click **Convert to FDS**.
 Use the save icon to download the generated `.fds`.
 
-### B. Open directly from a clone
+### B. Download a release ZIP and double-click
 
-Download or clone the repo, then double-click `index.html`. The workbench runs
-straight from `file://` — no local server needed. Use the *Open IFC* button to
-load a model.
+Grab the latest source as a single zip:
+
+* **Latest tagged release:** [v0.1.0 source ZIP](https://github.com/ProfRino/IFCtoFDS/archive/refs/tags/v0.1.0.zip)
+* **Bleeding-edge `main`:** [main branch source ZIP](https://github.com/ProfRino/IFCtoFDS/archive/refs/heads/main.zip)
+
+Unzip anywhere, then double-click `index.html`. The workbench runs straight
+from `file://` — no local server needed. Use the *Open IFC* button to load a
+model.
 
 ### C. Local web server
 
