@@ -6,9 +6,12 @@ so fire-safety engineers can move from architectural geometry to a simulation
 mesh without rebuilding the model by hand.
 
 The whole workbench runs **entirely in your web browser**. There is no
-installation, no backend, no Python environment, and no build step — just open
-`index.html` (or visit the hosted page), load your `.ifc`, and download the
-generated `.fds`.
+installation, no backend, no Python environment, and no build step.
+
+**👉 [Try it live: profrino.github.io/IFCtoFDS](https://profrino.github.io/IFCtoFDS/)**
+
+Or open `index.html` from a local clone of this repo — both paths are
+fully offline-capable once the page has loaded.
 
 ![Demo](demo/demo.gif)
 
@@ -58,7 +61,12 @@ workbench runs from a single `index.html` and a folder of static `.js` modules.
 
 ## Quick Start
 
-### A. Open directly
+### A. Hosted version (recommended)
+
+Open https://profrino.github.io/IFCtoFDS/ in any modern browser. No
+installation, no local server. Just click *Open IFC* and load a model.
+
+### A2. Open directly from a clone
 
 Download or clone the repo, then double-click `index.html`. The workbench runs
 straight from `file://`. Use the *Open IFC* button to load a model.
