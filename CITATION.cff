@@ -6,6 +6,7 @@ authors:
   - given-names: Rino
     family-names: Lovreglio
     affiliation: Massey University
+    orcid: "https://orcid.org/0000-0003-4596-7656"
 repository-code: "https://github.com/ProfRino/IFCtoFDS"
 url: "https://github.com/ProfRino/IFCtoFDS"
 abstract: >
