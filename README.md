@@ -1,5 +1,10 @@
 # IFCtoFDS
 
+[![Latest release](https://img.shields.io/github/v/release/ProfRino/IFCtoFDS?label=latest&color=blue)](https://github.com/ProfRino/IFCtoFDS/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/ProfRino/IFCtoFDS/total?label=downloads&color=brightgreen)](https://github.com/ProfRino/IFCtoFDS/releases)
+[![License: AGPL-3.0](https://img.shields.io/github/license/ProfRino/IFCtoFDS?label=License&color=yellow)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/ProfRino/IFCtoFDS?style=flat&color=lightgrey)](https://github.com/ProfRino/IFCtoFDS/stargazers)
+
 IFCtoFDS turns an **IFC** building model — the format every modern BIM tool
 exports — into a ready-to-run **Fire Dynamics Simulator (FDS)** input file,
 so fire-safety engineers can move from architectural geometry to a simulation
@@ -7,11 +12,6 @@ mesh without rebuilding the model by hand.
 
 The whole workbench runs **entirely in your web browser**. There is no
 installation, no backend, no Python environment, and no build step.
-
-**👉 [Try it live: profrino.github.io/IFCtoFDS](https://profrino.github.io/IFCtoFDS/)**
-
-Or open `index.html` from a local clone of this repo — both paths are
-fully offline-capable once the page has loaded.
 
 ![Demo](demo/demo.gif)
 
@@ -59,19 +59,34 @@ workbench runs from a single `index.html` and a folder of static `.js` modules.
   `! IFC_SOURCE` comment with IFC type, GlobalId, STEP id, and source name so
   the link to the source model survives a save-and-reload round trip.
 
+## Download / Try it live
+
+> **👉 [Run it now in your browser — profrino.github.io/IFCtoFDS](https://profrino.github.io/IFCtoFDS/)**
+>
+> No installation, no local server, no account. Just click *Open IFC* and load
+> an `.ifc` model. The hosted page and a local clone are byte-identical — both
+> are fully offline-capable once the page has loaded.
+
+For a versioned snapshot, download the latest release ZIP / tarball from the
+[Releases page](https://github.com/ProfRino/IFCtoFDS/releases/latest), unzip
+it, and double-click `index.html`.
+
 ## Quick Start
 
 ### A. Hosted version (recommended)
 
-Open https://profrino.github.io/IFCtoFDS/ in any modern browser. No
-installation, no local server. Just click *Open IFC* and load a model.
+Open **https://profrino.github.io/IFCtoFDS/** in any modern browser. Click
+*Open IFC*, pick an `.ifc` file (or drag-drop one onto the page), choose an
+**Opening approach** in the right-hand panel, then click **Convert to FDS**.
+Use the save icon to download the generated `.fds`.
 
-### A2. Open directly from a clone
+### B. Open directly from a clone
 
 Download or clone the repo, then double-click `index.html`. The workbench runs
-straight from `file://`. Use the *Open IFC* button to load a model.
+straight from `file://` — no local server needed. Use the *Open IFC* button to
+load a model.
 
-### B. Local web server
+### C. Local web server
 
 Serving the folder over loopback enables the parallel worker path and is the
 recommended way to run on big IFCs:
@@ -82,7 +97,7 @@ python -m http.server 8765
 
 Then open `http://127.0.0.1:8765/index.html`.
 
-### C. Convert from the command line
+### D. Convert from the command line
 
 The conversion pipeline also runs under Node — handy for batch jobs or CI:
 
