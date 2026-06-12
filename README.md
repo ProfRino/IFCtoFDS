@@ -67,9 +67,11 @@ workbench runs from a single `index.html` and a folder of static `.js` modules.
 > an `.ifc` model. The hosted page and a local clone are byte-identical — both
 > are fully offline-capable once the page has loaded.
 
-For a versioned snapshot, download the latest release ZIP / tarball from the
-[Releases page](https://github.com/ProfRino/IFCtoFDS/releases/latest), unzip
-it, and double-click `index.html`.
+For a versioned snapshot, download the [latest release zip](https://github.com/ProfRino/IFCtoFDS/releases/latest)
+— a clean zip with no git history (recommended). All releases with
+per-version download counts are listed on the
+[Releases page](https://github.com/ProfRino/IFCtoFDS/releases). Unzip and
+double-click `index.html`.
 
 ## Quick Start
 
@@ -82,10 +84,10 @@ Use the save icon to download the generated `.fds`.
 
 ### B. Download a release ZIP and double-click
 
-Grab the latest source as a single zip:
+Grab the latest release as a single zip:
 
-* **Latest tagged release:** [v0.1.0 source ZIP](https://github.com/ProfRino/IFCtoFDS/archive/refs/tags/v0.1.0.zip)
-* **Bleeding-edge `main`:** [main branch source ZIP](https://github.com/ProfRino/IFCtoFDS/archive/refs/heads/main.zip)
+* **Latest release:** [IFCtoFDS-v0.1.0.zip](https://github.com/ProfRino/IFCtoFDS/releases/download/v0.1.0/IFCtoFDS-v0.1.0.zip)
+* **Bleeding-edge `main`:** `git clone https://github.com/ProfRino/IFCtoFDS.git`
 
 Unzip anywhere, then double-click `index.html`. The workbench runs straight
 from `file://` — no local server needed. Use the *Open IFC* button to load a
