@@ -5,6 +5,18 @@ from ifc_to_fds.geometry.mesh import is_axis_aligned_box, valid_solid
 from ifc_to_fds.diagnostics import operation
 from ifc_to_fds.mep.classifier import MEP_TYPES
 
+MEP_PREFIXES = (
+    "IFCDUCT",
+    "IFCPIPE",
+    "IFCFAN",
+    "IFCVALVE",
+    "IFCAIRTERMINAL",
+    "IFCDAMPER",
+    "IFCFLOW",
+    "IFCPUMP",
+    "IFCDISTRIBUTION",
+)
+
 NON_OBSTACLE_TYPES = {
     "IFCSPACE",
     "IFCANNOTATION",
@@ -50,6 +62,7 @@ def validate_decisions(decisions):
             "EXCLUDE",
             "REFERENCE_GEOMETRY",
             "PASSIVE_OBSTACLE",
+            "HVAC",
         ):
             raise ValueError(f"Invalid decision action: {key}")
         if not all(
@@ -89,26 +102,21 @@ def determine_element_strategy(
         return MappingStrategy.SEMANTIC_ONLY
     if element.review_status == "EXCLUDED_APPROVED":
         return MappingStrategy.EXCLUDED_APPROVED
+    ifc_type_upper = (element.ifc_type or "").upper()
+    type_class_upper = (getattr(element, "type_class", None) or "").upper()
+    is_mep_type = (
+        ifc_type_upper in MEP_TYPES
+        or type_class_upper in MEP_TYPES
+        or ifc_type_upper.startswith(MEP_PREFIXES)
+        or type_class_upper.startswith(MEP_PREFIXES)
+    )
+    is_explicit_obstacle = (
+        bool(element.decision and element.decision.get("action") == "PASSIVE_OBSTACLE")
+        or (element.review_status == "APPROVED" and element.simulation_role == "PASSIVE_OBSTACLE")
+    )
     if (
-        element.simulation_role == "REFERENCE_GEOMETRY"
-        or (
-            (
-                (element.ifc_type or "").upper() in MEP_TYPES
-                or (element.ifc_type or "").upper().startswith(
-                    (
-                        "IFCDUCT",
-                        "IFCPIPE",
-                        "IFCFAN",
-                        "IFCVALVE",
-                        "IFCAIRTERMINAL",
-                        "IFCDAMPER",
-                        "IFCFLOW",
-                        "IFCPUMP",
-                    )
-                )
-            )
-            and element.simulation_role != "PASSIVE_OBSTACLE"
-        )
+        element.simulation_role in ("REFERENCE_GEOMETRY", "HVAC")
+        or (is_mep_type and not is_explicit_obstacle)
         or (
             element.boundary_treatment == "PENDING_VALIDATION"
             and element.representation_bounds is None
@@ -176,30 +184,8 @@ def plan_mapping(
             or e.ports
             or ifc_type_upper in MEP_TYPES
             or type_class_upper in MEP_TYPES
-            or ifc_type_upper.startswith(
-                (
-                    "IFCDUCT",
-                    "IFCPIPE",
-                    "IFCFAN",
-                    "IFCVALVE",
-                    "IFCAIRTERMINAL",
-                    "IFCDAMPER",
-                    "IFCFLOW",
-                    "IFCPUMP",
-                )
-            )
-            or type_class_upper.startswith(
-                (
-                    "IFCDUCT",
-                    "IFCPIPE",
-                    "IFCFAN",
-                    "IFCVALVE",
-                    "IFCAIRTERMINAL",
-                    "IFCDAMPER",
-                    "IFCFLOW",
-                    "IFCPUMP",
-                )
-            )
+            or ifc_type_upper.startswith(MEP_PREFIXES)
+            or type_class_upper.startswith(MEP_PREFIXES)
         )
         is_thin_covering = (
             e.ifc_type.upper() == "IFCCOVERING"
