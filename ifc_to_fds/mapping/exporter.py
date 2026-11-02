@@ -212,17 +212,19 @@ def serialize_mapping(model, cell_size=None, mapping_plan=None) -> Serialization
     """Render a validated plan without modifying the source model or plan."""
     from ifc_to_fds.domain.mapping import build_mapping_plan
     from .plan_validation import planned_model
+    from ifc_to_fds.mep.network import build_hvac_network
 
     if cell_size is not None and (not math.isfinite(cell_size) or cell_size <= 0):
         raise ValueError("cell_size must be finite and positive")
     if mapping_plan is None:
         mapping_plan = build_mapping_plan(
-            model, cell_size=0.2 if cell_size is None else cell_size
+            model, cell_size=0.2 if cell_size is None else cell_size,
+            hvac_network=build_hvac_network(model)
         )
     elif cell_size is not None and cell_size != mapping_plan.cell_size:
         raise ValueError("cell_size conflicts with MappingPlan")
     view = planned_model(model, mapping_plan)
-    text, manifest = _serialize_planned_model(view, mapping_plan.cell_size)
+    text, manifest = _serialize_planned_model(view, mapping_plan.cell_size, mapping_plan.hvac_network)
     return SerializationResult(
         text,
         manifest.model_copy(deep=True),
@@ -234,7 +236,7 @@ def serialize_mapping(model, cell_size=None, mapping_plan=None) -> Serialization
     )
 
 
-def _serialize_planned_model(model, cell_size):
+def _serialize_planned_model(model, cell_size, hvac_network):
     """Serializes CanonicalModel into valid FDS text and generates MappingManifest."""
     if not all(e.mapping_planned for e in model.elements):
         raise ValueError("Call plan_mapping before serialization")
@@ -356,48 +358,12 @@ def _serialize_planned_model(model, cell_size):
             lines.append(f"      VERTS={verts_str},")
             lines.append(f"      FACES={faces_str} /")
 
-        elif strategy == MappingStrategy.HVAC and elem.bounding_box:
-            prim_counter += 1
-            base_id = clean_fds_id(elem.name, f"duct_{elem.step_id}")
-            duct_id = f"DUCT_{prim_counter}_{base_id}"
-            node1_id = f"NODE_{prim_counter}_A"
-            node2_id = f"NODE_{prim_counter}_B"
-            elem.fds_primitive_ids.extend([node1_id, node2_id, duct_id])
-
-            b = elem.bounding_box
-            dx = max(b.dx, 1e-4)
-            dy = max(b.dy, 1e-4)
-            dz = max(b.dz, 1e-4)
-
-            if dx >= dy and dx >= dz:
-                p1 = [b.xmin, (b.ymin + b.ymax) / 2.0, (b.zmin + b.zmax) / 2.0]
-                p2 = [b.xmax, (b.ymin + b.ymax) / 2.0, (b.zmin + b.zmax) / 2.0]
-                length = round(dx, 4)
-                area = round(dy * dz, 4)
-            elif dy >= dx and dy >= dz:
-                p1 = [(b.xmin + b.xmax) / 2.0, b.ymin, (b.zmin + b.zmax) / 2.0]
-                p2 = [(b.xmin + b.xmax) / 2.0, b.ymax, (b.zmin + b.zmax) / 2.0]
-                length = round(dy, 4)
-                area = round(dx * dz, 4)
-            else:
-                p1 = [(b.xmin + b.xmax) / 2.0, (b.ymin + b.ymax) / 2.0, b.zmin]
-                p2 = [(b.xmin + b.xmax) / 2.0, (b.ymin + b.ymax) / 2.0, b.zmax]
-                length = round(dz, 4)
-                area = round(dx * dy, 4)
-
-            p1_str = format_xb(p1)
-            p2_str = format_xb(p2)
-
-            lines.append(format_source_comment(elem))
-            lines.append(
-                f"&HVAC TYPE_ID='NODE', ID='{node1_id}', DUCT_ID='{duct_id}', XYZ={p1_str} /"
-            )
-            lines.append(
-                f"&HVAC TYPE_ID='NODE', ID='{node2_id}', DUCT_ID='{duct_id}', XYZ={p2_str} /"
-            )
-            lines.append(
-                f"&HVAC TYPE_ID='DUCT', ID='{duct_id}', NODE_ID='{node1_id}','{node2_id}', AREA={area}, LENGTH={length}, ROUGHNESS=0.001 /"
-            )
+    from ifc_to_fds.mep.fds_records import render_network
+    lines.extend(render_network(hvac_network, model.elements))
+    assignments = hvac_network.assignments()
+    for elem in model.elements:
+        if elem.entity_key in assignments:
+            elem.fds_primitive_ids.extend(assignments[elem.entity_key])
 
     lines.append("")
     lines.append("&TAIL /")

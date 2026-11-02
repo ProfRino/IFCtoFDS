@@ -1,0 +1,462 @@
+{
+  "requested_level": "mapping",
+  "mapping_status": "MAPPING_VERIFIED",
+  "simulation_status": "INCONCLUSIVE",
+  "schema_version": "0.5.0",
+  "status": "MAPPING_VERIFIED",
+  "total_elements_checked": 8,
+  "matched_count": 1,
+  "deviated_count": 0,
+  "missing_count": 0,
+  "excluded_count": 0,
+  "semantic_only_count": 5,
+  "findings": [],
+  "summary": {
+    "P0": 0,
+    "P1": 0,
+    "P2": 0,
+    "P3": 0
+  },
+  "gates": {
+    "syntax": {
+      "status": "PASS",
+      "required": true,
+      "reason": "",
+      "evidence": {}
+    },
+    "source_inventory": {
+      "status": "PASS",
+      "required": true,
+      "reason": "All source hashes and product identities re-read from IFC; per-product reference geometry rebuilt",
+      "evidence": {}
+    },
+    "traceability": {
+      "status": "PASS",
+      "required": true,
+      "reason": "",
+      "evidence": {}
+    },
+    "scope": {
+      "status": "PASS",
+      "required": true,
+      "reason": "",
+      "evidence": {}
+    },
+    "geometry": {
+      "status": "PASS",
+      "required": true,
+      "reason": "",
+      "evidence": {}
+    },
+    "structural_completeness": {
+      "status": "PASS",
+      "required": true,
+      "reason": "1 structural entities; 0 missing required solids; 0 withheld/unresolved; 0 reviewed dispositions. This checks mapping completeness, not source-building airtightness.",
+      "evidence": {
+        "missing": [],
+        "withheld": [],
+        "reviewed_dispositions": []
+      }
+    },
+    "air_path": {
+      "status": "PASS",
+      "required": true,
+      "reason": "Enclosure topology verified: 1 cavities preserved, leak ratio 0.000000e+00 within tolerance.",
+      "evidence": {
+        "enclosure_count": 1,
+        "leak_volume_m3": 0.0,
+        "leak_ratio": 0.0,
+        "source_cavities": 1,
+        "fds_cavities": 1
+      }
+    },
+    "openings": {
+      "status": "NOT_APPLICABLE",
+      "required": true,
+      "reason": "No mapped host has source openings",
+      "evidence": {}
+    },
+    "mep": {
+      "status": "PASS",
+      "required": true,
+      "reason": "",
+      "evidence": {}
+    },
+    "representation": {
+      "status": "PASS",
+      "required": true,
+      "reason": "",
+      "evidence": {}
+    },
+    "boundary": {
+      "status": "PASS",
+      "required": true,
+      "reason": "",
+      "evidence": {}
+    },
+    "domain": {
+      "status": "PASS",
+      "required": true,
+      "reason": "",
+      "evidence": {}
+    },
+    "hvac": {
+      "status": "PASS",
+      "required": true,
+      "reason": "Operational HVAC network independently reconstructed",
+      "evidence": {}
+    },
+    "mesh_resolution": {
+      "status": "NOT_APPLICABLE",
+      "required": true,
+      "reason": "No fire sources defined for mesh resolution checking",
+      "evidence": {}
+    },
+    "solver": {
+      "status": "INCONCLUSIVE",
+      "required": false,
+      "reason": "FDS executable not installed/configured",
+      "evidence": {}
+    },
+    "effective_geometry": {
+      "status": "INCONCLUSIVE",
+      "required": false,
+      "reason": "Effective geometry has not been proved from solver output",
+      "evidence": {}
+    },
+    "geometry_preservation": {
+      "status": "PASS",
+      "required": true,
+      "reason": "Saved geometry independently compared with re-read IFC",
+      "evidence": {}
+    },
+    "placement": {
+      "status": "PASS",
+      "required": true,
+      "reason": "Source placements re-read and preserved",
+      "evidence": {}
+    },
+    "golden_reference_parity": {
+      "status": "NOT_APPLICABLE",
+      "required": true,
+      "reason": "No reference selected for general mapping",
+      "evidence": {}
+    }
+  },
+  "element_statuses": {
+    "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:12": "MATCHED",
+    "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:28": "OPERATIONAL_MAPPED",
+    "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:43": "OPERATIONAL_MAPPED",
+    "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:60": "SEMANTIC_ONLY",
+    "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:65": "SEMANTIC_ONLY",
+    "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:70": "SEMANTIC_ONLY",
+    "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:75": "SEMANTIC_ONLY",
+    "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:10": "SEMANTIC_ONLY"
+  },
+  "metrics": {
+    "actual_cell_size_m": [
+      0.2,
+      0.2,
+      0.2
+    ],
+    "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:12": {
+      "solid_iou": 1.0,
+      "relative_volume_error": 0.0,
+      "relative_area_error": 4.1310624172098857e-16,
+      "surface_distance_m": 0.0,
+      "surface_proven": true,
+      "reference_components": 1,
+      "output_components": 1,
+      "preserved:solid": {
+        "solid_iou": 1.0,
+        "relative_volume_error": 0.0,
+        "relative_area_error": 0.0,
+        "surface_distance_m": 0.0,
+        "surface_proven": true,
+        "reference_components": 1,
+        "output_components": 1,
+        "comparison_method": "EXACT_ORIENTED_TRIANGLES"
+      }
+    },
+    "hvac_nodes": 3,
+    "hvac_ducts": 2,
+    "structural_completeness": {
+      "source_count": 1,
+      "missing": [],
+      "withheld": []
+    },
+    "air_path": {
+      "enclosure_count": 1,
+      "leak_volume_m3": 0.0,
+      "leak_ratio": 0.0
+    },
+    "solver_s": 0.010082599997986108,
+    "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:28": {
+      "preserved:solid": {
+        "solid_iou": 1.0,
+        "relative_volume_error": 0.0,
+        "relative_area_error": 0.0,
+        "surface_distance_m": 0.0,
+        "surface_proven": true,
+        "reference_components": 1,
+        "output_components": 1,
+        "comparison_method": "EXACT_ORIENTED_TRIANGLES"
+      }
+    },
+    "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:43": {
+      "preserved:solid": {
+        "solid_iou": 1.0,
+        "relative_volume_error": 0.0,
+        "relative_area_error": 0.0,
+        "surface_distance_m": 0.0,
+        "surface_proven": true,
+        "reference_components": 1,
+        "output_components": 1,
+        "comparison_method": "EXACT_ORIENTED_TRIANGLES"
+      }
+    },
+    "stage_timings": {
+      "independent_source_reread_s": 0.03734239999903366,
+      "validation_s": 0.07700189999741269,
+      "package_audit_s": 0.07785150000199792,
+      "parity_s": 0.0006919000006746501,
+      "solver_s": 0.010082599997986108
+    },
+    "exported_bounds": {
+      "xmin": 0.0,
+      "xmax": 8.0,
+      "ymin": 0.0,
+      "ymax": 0.2,
+      "zmin": 0.0,
+      "zmax": 4.0
+    },
+    "execution_provenance": {
+      "python_version": "3.10.21",
+      "platform": "Windows-10-10.0.26300-SP0",
+      "system": "Windows",
+      "machine": "AMD64",
+      "ifcopenshell_version": "0.9.0.post1",
+      "trimesh_version": "5.1.1"
+    }
+  },
+  "configuration": {
+    "fail_fast_on_source_errors": false,
+    "surface_tolerance_m": 0.001,
+    "relative_volume_tolerance": 0.001,
+    "min_solid_iou": 0.999,
+    "solver_executable": null,
+    "solver_version": "6.11.1",
+    "solver_evidence_directory": null,
+    "boundary_fixture_certificate": null,
+    "solver_timeout_s": 120.0,
+    "max_leak_volume_m3": 0.0001,
+    "scope": {
+      "name": "FullModel",
+      "bounding_box": null,
+      "coordinate_frame": null,
+      "storeys": [],
+      "include_connecting_structures": true,
+      "elements": []
+    },
+    "simulation_domain": {
+      "xmin": 0.0,
+      "xmax": 10.0,
+      "ymin": 0.0,
+      "ymax": 5.0,
+      "zmin": 0.0,
+      "zmax": 5.0
+    },
+    "research": {
+      "known_cases": [],
+      "profile": "mapping",
+      "parity_status": "NOT_RUN",
+      "research_acceptance": "NOT_RUN"
+    }
+  },
+  "coverage": {
+    "inventory": 8,
+    "geometry": 1,
+    "missing": 0,
+    "openings": 0,
+    "mep": {
+      "VENTILATION": {
+        "source_count": 2,
+        "ports": 4,
+        "connected": 2,
+        "entity_keys": [
+          "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:28",
+          "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:43"
+        ],
+        "assigned_to_systems": 2,
+        "elements_with_ports": 2,
+        "connected_ports": 2,
+        "isolated_ports": 2,
+        "unsupported_elements": []
+      },
+      "SMOKE_EXTRACT": {
+        "source_count": 0,
+        "ports": 0,
+        "connected": 0,
+        "entity_keys": [],
+        "assigned_to_systems": 0,
+        "elements_with_ports": 0,
+        "connected_ports": 0,
+        "isolated_ports": 0,
+        "unsupported_elements": []
+      },
+      "FIRE_SUPPRESSION": {
+        "source_count": 0,
+        "ports": 0,
+        "connected": 0,
+        "entity_keys": [],
+        "assigned_to_systems": 0,
+        "elements_with_ports": 0,
+        "connected_ports": 0,
+        "isolated_ports": 0,
+        "unsupported_elements": []
+      },
+      "PLUMBING": {
+        "source_count": 0,
+        "ports": 0,
+        "connected": 0,
+        "entity_keys": [],
+        "assigned_to_systems": 0,
+        "elements_with_ports": 0,
+        "connected_ports": 0,
+        "isolated_ports": 0,
+        "unsupported_elements": []
+      },
+      "OTHER": {
+        "source_count": 0,
+        "ports": 0,
+        "connected": 0,
+        "entity_keys": [],
+        "assigned_to_systems": 0,
+        "elements_with_ports": 0,
+        "connected_ports": 0,
+        "isolated_ports": 0,
+        "unsupported_elements": []
+      },
+      "UNRESOLVED": {
+        "source_count": 0,
+        "ports": 0,
+        "connected": 0,
+        "entity_keys": [],
+        "assigned_to_systems": 0,
+        "elements_with_ports": 0,
+        "connected_ports": 0,
+        "isolated_ports": 0,
+        "unsupported_elements": []
+      },
+      "source_relationships": {
+        "distribution_ports": 4,
+        "explicit_port_relations": 1,
+        "accounted_edge_relations": 1,
+        "unresolved_system_keys": [],
+        "orphan_port_keys": []
+      }
+    },
+    "fds_export": {
+      "entities": 1,
+      "primitives": 1,
+      "obst": 1,
+      "geom": 0,
+      "verified_entities": 1,
+      "comparisons_skipped_for_source_errors": false
+    },
+    "mep_systems": {
+      "VENTILATION": {
+        "reference_geometry": 0,
+        "fds_obstacles": 0,
+        "operational_verified": 2,
+        "operational_configured": 2,
+        "source_count": 2,
+        "in_scope": 2,
+        "geometry_verified": 0,
+        "semantic_only": 0,
+        "excluded": 0,
+        "failed_or_unverified": 0,
+        "ports": 4
+      },
+      "SMOKE_EXTRACT": {
+        "reference_geometry": 0,
+        "fds_obstacles": 0,
+        "operational_verified": 0,
+        "operational_configured": 0,
+        "source_count": 0,
+        "in_scope": 0,
+        "geometry_verified": 0,
+        "semantic_only": 0,
+        "excluded": 0,
+        "failed_or_unverified": 0,
+        "ports": 0
+      },
+      "FIRE_SUPPRESSION": {
+        "reference_geometry": 0,
+        "fds_obstacles": 0,
+        "operational_verified": 0,
+        "operational_configured": 0,
+        "source_count": 0,
+        "in_scope": 0,
+        "geometry_verified": 0,
+        "semantic_only": 0,
+        "excluded": 0,
+        "failed_or_unverified": 0,
+        "ports": 0
+      },
+      "PLUMBING": {
+        "reference_geometry": 0,
+        "fds_obstacles": 0,
+        "operational_verified": 0,
+        "operational_configured": 0,
+        "source_count": 0,
+        "in_scope": 0,
+        "geometry_verified": 0,
+        "semantic_only": 0,
+        "excluded": 0,
+        "failed_or_unverified": 0,
+        "ports": 0
+      },
+      "OTHER": {
+        "reference_geometry": 0,
+        "fds_obstacles": 0,
+        "operational_verified": 0,
+        "operational_configured": 0,
+        "source_count": 0,
+        "in_scope": 0,
+        "geometry_verified": 0,
+        "semantic_only": 0,
+        "excluded": 0,
+        "failed_or_unverified": 0,
+        "ports": 0
+      },
+      "UNRESOLVED": {
+        "reference_geometry": 0,
+        "fds_obstacles": 0,
+        "operational_verified": 0,
+        "operational_configured": 0,
+        "source_count": 0,
+        "in_scope": 0,
+        "geometry_verified": 0,
+        "semantic_only": 0,
+        "excluded": 0,
+        "failed_or_unverified": 0,
+        "ports": 0
+      }
+    },
+    "scope": {
+      "IN_SCOPE": 8,
+      "OUT_OF_SCOPE": 0,
+      "BOUNDARY_RETAINED": 0,
+      "UNRESOLVED": 0,
+      "selected_storeys": []
+    },
+    "representation": {
+      "REFERENCE_GEOMETRY": 0,
+      "PASSIVE_OBSTACLE": 6,
+      "OPERATIONAL_MEP": 0,
+      "HVAC": 2
+    },
+    "boundary_pending": []
+  }
+}

@@ -12,6 +12,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
 
 from ..mep.model import MEPGraph, PortReference
+from ..mep.hvac import HvacNetworkPlan
 from ..scope.model import ScopeDecision
 from ..source.model import SourceMetadata
 from .bounding_box import BoundingBox
@@ -133,6 +134,7 @@ class CanonicalModel(BaseModel):
     sources: List[SourceMetadata] = Field(default_factory=list)
     elements: List[CanonicalElement] = Field(default_factory=list)
     mep_graph: MEPGraph = Field(default_factory=MEPGraph)
+    hvac_network: HvacNetworkPlan = Field(default_factory=HvacNetworkPlan)
     storeys: List[str] = Field(default_factory=list)
     model_bounds: Optional[BoundingBox] = None
     storey_references: List[StoreyReference] = Field(default_factory=list)

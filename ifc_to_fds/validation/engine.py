@@ -232,6 +232,7 @@ def run_independent_validation(
                 "Manifest entity inventory differs from source",
                 severity=Severity.P0,
             )
+        actual_ids.update(r.id for r in parsed.operational_records)
         manifest_ids = {p for r in records for p in r.fds_primitive_ids}
         if manifest_ids != actual_ids:
             finding(
@@ -487,6 +488,9 @@ def run_independent_validation(
                 else "INCONCLUSIVE"
             )
             continue
+        if strategy == MappingStrategy.HVAC.value:
+            report.element_statuses[key] = "OPERATIONAL_MAPPED"
+            continue
         meshes = primitives.get(key, [])
         if not meshes:
             report.missing_count += 1
@@ -645,6 +649,13 @@ def run_independent_validation(
         parsed_fds=parsed,
         config=config,
     )
+    from .checkers.hvac import HvacNetworkChecker
+    from .checkers.mesh_resolution import MeshResolutionChecker
+    for checker in (HvacNetworkChecker(), MeshResolutionChecker()):
+        outcome = checker.check(validation_ctx)
+        report.gates[outcome.gate_name] = outcome.result
+        report.findings.extend(outcome.findings)
+        report.metrics.update(outcome.metrics)
     structural = StructuralCompletenessChecker().check(validation_ctx)
     report.gates[structural.gate_name] = structural.result
     report.findings.extend(structural.findings)
@@ -667,6 +678,9 @@ def run_independent_validation(
             status=GateStatus.NOT_RUN,
             reason="Source topology preflight rejected; effective geometry not run",
         )
+    elif report.gates["mesh_resolution"].status not in (GateStatus.PASS, GateStatus.NOT_APPLICABLE):
+        report.gates["solver"] = GateResult(status=GateStatus.INCONCLUSIVE, reason="Mesh resolution gate did not pass")
+        report.gates["effective_geometry"] = GateResult(status=GateStatus.INCONCLUSIVE, reason="Mesh resolution gate did not pass")
     elif report.gates["syntax"].status == GateStatus.PASS:
         report.gates["solver"], report.gates["effective_geometry"] = solver_gates(
             fds_text, config

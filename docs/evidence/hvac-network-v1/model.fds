@@ -1,0 +1,23 @@
+&HEAD CHID='connected-ducts', TITLE='IFCtoFDS conversion; see acceptance report' /
+&TIME T_END=0.0 /
+&MESH IJK=50,25,25, XB=0,10,0,5,0,5 /
+
+&SURF ID='CONCRETE', COLOR='GRAY', DEFAULT=.TRUE. /
+&SURF ID='GLASS', COLOR='SKY BLUE', TRANSPARENCY=0.5 /
+&SURF ID='STEEL', COLOR='DIM GRAY' /
+&SURF ID='WOOD', COLOR='SANDY BROWN' /
+
+! IFC_SOURCE {"entity_key": "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:12", "source_id": "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d", "global_id": "1OhXJGm4z0ux00o7pZA9$u", "step_id": 12, "ifc_type": "IfcWall"}
+&OBST ID='OBST_1_Wall', XB=0,8,0,0.2,0,4, SURF_ID='CONCRETE' /
+! IFC_SOURCE {"entity_key": "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:28", "entity_keys": ["a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:28"], "source_id": "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d", "global_id": "0OmcTcKhrBrv38mW2X5KDm", "step_id": 28, "ifc_type": "IfcDuctSegment"}
+&HVAC TYPE_ID='NODE', ID='N_789b1ad17f5c767fe543', DUCT_ID='D_74216b5004e2abcc599f', LOSS=1.0,1.0, AMBIENT=.TRUE., XYZ=1.0,1.2,2.15 /
+! IFC_SOURCE {"entity_key": "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:28", "entity_keys": ["a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:28", "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:43"], "source_id": "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d", "global_id": "0OmcTcKhrBrv38mW2X5KDm", "step_id": 28, "ifc_type": "IfcDuctSegment"}
+&HVAC TYPE_ID='NODE', ID='N_a6aa5a2aff7ce3ead8d2', DUCT_ID='D_3cfcd0e0c82be664a911','D_74216b5004e2abcc599f', XYZ=4.0,1.2,2.15 /
+! IFC_SOURCE {"entity_key": "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:43", "entity_keys": ["a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:43"], "source_id": "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d", "global_id": "1GUC5LMiT5mBNh68sHpG3O", "step_id": 43, "ifc_type": "IfcDuctSegment"}
+&HVAC TYPE_ID='NODE', ID='N_f04712b784bff07c82aa', DUCT_ID='D_3cfcd0e0c82be664a911', LOSS=1.0,1.0, AMBIENT=.TRUE., XYZ=7.0,1.2,2.15 /
+! IFC_SOURCE {"entity_key": "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:43", "entity_keys": ["a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:43"], "source_id": "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d", "global_id": "1GUC5LMiT5mBNh68sHpG3O", "step_id": 43, "ifc_type": "IfcDuctSegment"}
+&HVAC TYPE_ID='DUCT', ID='D_3cfcd0e0c82be664a911', NODE_ID='N_a6aa5a2aff7ce3ead8d2','N_f04712b784bff07c82aa', LENGTH=3.0, ROUGHNESS=0.0, AREA=0.12, PERIMETER=1.4 /
+! IFC_SOURCE {"entity_key": "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:28", "entity_keys": ["a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:28"], "source_id": "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d", "global_id": "0OmcTcKhrBrv38mW2X5KDm", "step_id": 28, "ifc_type": "IfcDuctSegment"}
+&HVAC TYPE_ID='DUCT', ID='D_74216b5004e2abcc599f', NODE_ID='N_789b1ad17f5c767fe543','N_a6aa5a2aff7ce3ead8d2', LENGTH=3.0, ROUGHNESS=0.0, AREA=0.12, PERIMETER=1.4 /
+
+&TAIL /

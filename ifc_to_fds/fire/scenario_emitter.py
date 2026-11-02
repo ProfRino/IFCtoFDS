@@ -25,6 +25,13 @@ def clean_fds_id(name: str, fallback: str = "ID") -> str:
     return cleaned[:30]
 
 
+def opening_control_key(entity_key: str) -> str:
+    key = clean_fds_id(entity_key)[:20].rstrip("._-")
+    if len(entity_key) > 20:
+        key = key[:7] + "_" + hashlib.sha256(entity_key.encode()).hexdigest()[:12]
+    return key
+
+
 def format_xb(xb: List[float] | Tuple[float, ...]) -> str:
     return ",".join(
         str(int(v)) if float(v).is_integer() else f"{float(v):.4f}".rstrip("0").rstrip(".")
@@ -443,7 +450,8 @@ def emit_fire_scenario(
     if normalized_opening_events:
         lines.append("! --- Opening & Boundary Controls ---")
         for ev_open in normalized_opening_events:
-            clean_key = clean_fds_id(ev_open.entity_key)[:20].rstrip("._-")
+            # Source-qualified keys share a hash prefix; keep entity identity.
+            clean_key = opening_control_key(ev_open.entity_key)
             timer_devc_id = f"DEVC_{clean_key}_TIME"
             ctrl_id = clean_fds_id(f"CTRL_{clean_key}")
 

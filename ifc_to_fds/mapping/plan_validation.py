@@ -16,6 +16,10 @@ def planned_model(model, plan):
     plan = MappingPlan.model_validate(plan.model_dump())
     if not all(e.mapping_planned for e in model.elements):
         raise ValueError("Call plan_mapping before serialization")
+    from ifc_to_fds.mep.network import build_hvac_network
+    expected_network = build_hvac_network(model)
+    if plan.hvac_network != expected_network:
+        raise ValueError("MappingPlan HVAC network differs from reviewed source topology/parameters")
     known = {e.entity_key: e for e in model.elements}
     keys = [d.entity_key for d in plan.decisions]
     if (
@@ -66,7 +70,7 @@ def planned_model(model, plan):
             reject(
                 "strategy differs from source policy; build a new plan through policy"
             )
-        if d.fds_representation != (d.strategy.value if emits else "NONE"):
+        if d.fds_representation != (d.strategy.value if emits or d.strategy == MappingStrategy.HVAC else "NONE"):
             reject("strategy and FDS representation conflict")
         if (
             d.strategy == MappingStrategy.EXCLUDED_APPROVED

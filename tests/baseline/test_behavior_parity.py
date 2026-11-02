@@ -53,6 +53,9 @@ def assert_semantic_parity(actual: dict, expected: dict):
         **expected["gates"],
         "structural_completeness": "PASS",
         "air_path": expected_air_path,
+        # Additive gates: frozen fixtures contain no operational HVAC or fires.
+        "hvac": "NOT_APPLICABLE",
+        "mesh_resolution": "NOT_APPLICABLE",
     }
     assert actual["findings_count"] == expected["findings_count"]
     assert actual["geometry_package_sha256"] == expected["geometry_package_sha256"]

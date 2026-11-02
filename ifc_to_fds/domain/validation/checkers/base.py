@@ -12,6 +12,7 @@ class CheckerOutcome:
     result: GateResult
     findings: List[Finding] = field(default_factory=list)
     metrics: Dict[str, Any] = field(default_factory=dict)
+    additional_gates: Dict[str, GateResult] = field(default_factory=dict)
     element_statuses: Dict[str, str] = field(default_factory=dict)
 
 

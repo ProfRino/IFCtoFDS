@@ -53,7 +53,13 @@ class ParsedFDS:
 
     @property
     def primitives(self):
-        return [r for r in self.records if r.kind in ("OBST", "GEOM", "HOLE", "VENT")]
+        return [r for r in self.records if r.kind in ("OBST", "GEOM", "HOLE", "VENT")
+                and not (r.kind == "VENT" and r.values.get("SURF_ID") == ["HVAC"])]
+
+    @property
+    def operational_records(self):
+        return [r for r in self.records if r.kind == "HVAC"
+                or (r.kind == "VENT" and r.values.get("SURF_ID") == ["HVAC"])]
 
 
 def parse_value(token):
@@ -145,6 +151,8 @@ def parse_fds(text):
         },
         "HVAC": {
             "ID",
+            "AMBIENT",
+            "GEOM",
             "TYPE_ID",
             "DUCT_ID",
             "NODE_ID",
@@ -264,7 +272,8 @@ def parse_fds(text):
                 r = FDSRecord(kind, values, source)
                 if r.id and kind != "RAMP":
                     identity = (
-                        kind
+                        (kind, tuple(values.get("TYPE_ID", [])))
+                        if kind == "HVAC" else kind
                         if kind not in ("OBST", "HOLE", "GEOM", "VENT")
                         else "PRIMITIVE",
                         r.id,
@@ -316,4 +325,6 @@ def parse_fds(text):
             parsed.errors.append(f"Missing {kind}")
     if parsed.records and parsed.records[-1].kind != "TAIL":
         parsed.errors.append("TAIL must be last")
+    from .hvac import hvac_errors
+    parsed.errors.extend(hvac_errors(parsed))
     return parsed

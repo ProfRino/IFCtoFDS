@@ -55,6 +55,7 @@ def validate_decisions(decisions):
             "reviewer",
             "evidence",
             "factors",
+            "hvac",
         }:
             raise ValueError(f"Invalid decision: {key}")
         if decision.get("action") not in (
@@ -71,6 +72,11 @@ def validate_decisions(decisions):
             raise ValueError(
                 f"Decision requires policy version, rationale, reviewer and evidence: {key}"
             )
+        if "hvac" in decision:
+            if decision["action"] != "HVAC":
+                raise ValueError("hvac parameters require action=HVAC")
+            from ifc_to_fds.domain.mep.hvac import DuctSpec
+            DuctSpec.model_validate(decision["hvac"])
         if decision["action"] == "PASSIVE_OBSTACLE" and (
             not isinstance(decision.get("factors"), dict)
             or set(decision["factors"]) != PROMOTION_FACTORS
@@ -237,6 +243,7 @@ def plan_mapping(
             e.scope_decision
             in (ScopeDecision.IN_SCOPE, ScopeDecision.BOUNDARY_RETAINED)
             and e.role == "PHYSICAL"
+            and e.simulation_role != "HVAC"
             and e.bounding_box
             and model.simulation_domain
         ):
@@ -269,7 +276,7 @@ def plan_mapping(
         )
         e.fds_representation = (
             e.mapping_strategy.value
-            if e.mapping_strategy in (MappingStrategy.OBST, MappingStrategy.GEOM)
+            if e.mapping_strategy in (MappingStrategy.OBST, MappingStrategy.GEOM, MappingStrategy.HVAC)
             else "NONE"
         )
         e.geometry_preservation = "NOT_RUN"
@@ -327,4 +334,6 @@ def plan_mapping(
                 "; valid IFC host solid retained, including kernel-applied voids; "
                 "opening evidence incomplete, opening verification INCONCLUSIVE"
             )
+    from ifc_to_fds.mep.network import build_hvac_network
+    model.hvac_network = build_hvac_network(model)  # Validated independently of serialization.
     return model

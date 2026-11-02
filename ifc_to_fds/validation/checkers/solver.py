@@ -57,4 +57,5 @@ class SolverChecker:
             gate_name="solver",
             result=solver_gate,
             metrics={"solver_s": elapsed},
+            additional_gates={"effective_geometry": effective_gate},
         )

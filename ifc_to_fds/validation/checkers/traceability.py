@@ -142,6 +142,7 @@ class TraceabilityChecker:
                         element_id="",
                     )
                 )
+            actual_ids.update(r.id for r in parsed.operational_records)
             manifest_ids = {p for r in records for p in r.fds_primitive_ids}
             if manifest_ids != actual_ids:
                 status = GateStatus.FAIL

@@ -41,6 +41,7 @@ class AcceptanceEvaluator:
         # Apply outcomes from checkers
         for outcome in outcomes:
             report.gates[outcome.gate_name] = outcome.result.model_copy(deep=True)
+            report.gates.update({k: v.model_copy(deep=True) for k, v in outcome.additional_gates.items()})
             report.findings.extend(f.model_copy(deep=True) for f in outcome.findings)
             report.metrics.update(deepcopy(outcome.metrics))
             report.element_statuses.update(deepcopy(outcome.element_statuses))

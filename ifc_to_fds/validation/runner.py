@@ -18,6 +18,7 @@ from ifc_to_fds.validation.checkers.representation import RepresentationChecker
 from ifc_to_fds.validation.checkers.boundary import BoundaryChecker
 from ifc_to_fds.validation.checkers.mesh_resolution import MeshResolutionChecker
 from ifc_to_fds.validation.checkers.solver import SolverChecker
+from ifc_to_fds.validation.checkers.hvac import HvacNetworkChecker
 
 
 class ValidationRunner:
@@ -39,6 +40,7 @@ class ValidationRunner:
             AirPathTopologyChecker(),
             OpeningsChecker(),
             MepChecker(),
+            HvacNetworkChecker(),
             RepresentationChecker(),
             BoundaryChecker(),
             MeshResolutionChecker(),

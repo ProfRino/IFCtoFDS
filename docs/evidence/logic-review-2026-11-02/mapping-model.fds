@@ -1,0 +1,13 @@
+&HEAD CHID='connected-ducts', TITLE='IFCtoFDS conversion; see acceptance report' /
+&TIME T_END=0.0 /
+&MESH IJK=50,25,25, XB=0,10,0,5,0,5 /
+
+&SURF ID='CONCRETE', COLOR='GRAY', DEFAULT=.TRUE. /
+&SURF ID='GLASS', COLOR='SKY BLUE', TRANSPARENCY=0.5 /
+&SURF ID='STEEL', COLOR='DIM GRAY' /
+&SURF ID='WOOD', COLOR='SANDY BROWN' /
+
+! IFC_SOURCE {"entity_key": "d19b94d25eadf49402e34b5a36ec7bf80bb2dc9c4df6a2ef7da7f86994737364:12", "source_id": "d19b94d25eadf49402e34b5a36ec7bf80bb2dc9c4df6a2ef7da7f86994737364", "global_id": "2ZZHigaxrACuqrUHnZARIN", "step_id": 12, "ifc_type": "IfcWall"}
+&OBST ID='OBST_1_Wall', XB=0,8,0,0.2,0,4, SURF_ID='CONCRETE' /
+
+&TAIL /

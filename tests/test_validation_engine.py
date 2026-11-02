@@ -317,8 +317,8 @@ def test_parser_whitelists_hvac_namelists():
 &HEAD CHID='hvac_test', TITLE='HVAC Duct Scenario' /
 &TIME T_END=100.0 /
 &MESH ID='M1', IJK=10,10,10, XB=0,2,0,2,0,2 /
-&HVAC TYPE_ID='NODE', ID='N1', DUCT_ID='D1', XYZ=0.5,1.0,1.5 /
-&HVAC TYPE_ID='NODE', ID='N2', DUCT_ID='D1', XYZ=1.5,1.0,1.5 /
+&HVAC TYPE_ID='NODE', ID='N1', DUCT_ID='D1', XYZ=0.5,1.0,1.5, AMBIENT=.TRUE. /
+&HVAC TYPE_ID='NODE', ID='N2', DUCT_ID='D1', XYZ=1.5,1.0,1.5, AMBIENT=.TRUE. /
 &HVAC TYPE_ID='DUCT', ID='D1', NODE_ID='N1','N2', AREA=0.1, LENGTH=1.0, ROUGHNESS=0.001 /
 &TAIL /
 """

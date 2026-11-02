@@ -12,6 +12,7 @@ from ..bim.bounding_box import BoundingBox
 from ..version import SCHEMA_VERSION
 from ..scope.model import ScopeDecision
 from .enums import MappingStatus, MappingStrategy
+from ..mep.hvac import HvacNetworkPlan
 
 __all__ = [
     "MappingStrategy",
@@ -65,6 +66,7 @@ class MappingPlan(BaseModel):
     """Intermediate mapping plan decoupled from FDS serialization."""
 
     decisions: List[MappingDecision] = Field(default_factory=list)
+    hvac_network: HvacNetworkPlan = Field(default_factory=HvacNetworkPlan)
     simulation_domain: Optional[BoundingBox] = None
     cell_size: float = Field(0.2, gt=0, allow_inf_nan=False)
     domain_origin: str = "UNRESOLVED"
