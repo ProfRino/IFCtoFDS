@@ -28,3 +28,5 @@ class MappingStrategy(str, Enum):
     VOXEL = "VOXEL"
     SEMANTIC_ONLY = "SEMANTIC_ONLY"
     EXCLUDED_APPROVED = "EXCLUDED_APPROVED"
+    HVAC = "HVAC"
+

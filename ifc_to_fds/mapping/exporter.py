@@ -67,6 +67,28 @@ def format_source_comment(elem: CanonicalElement) -> str:
     )
 
 
+def surface_for_element(elem: CanonicalElement) -> str:
+    ifc_type = (elem.ifc_type or "").upper()
+    type_class = (getattr(elem, "type_class", None) or "").upper()
+    name = (elem.name or "").upper()
+    from ifc_to_fds.mep.classifier import MEP_TYPES
+    from ifc_to_fds.mapping.policy import MEP_PREFIXES
+
+    if ifc_type in ("IFCWINDOW", "IFCDOOR") or "GLASS" in ifc_type:
+        return "GLASS"
+    if (
+        ifc_type in MEP_TYPES
+        or type_class in MEP_TYPES
+        or ifc_type.startswith(MEP_PREFIXES)
+        or type_class.startswith(MEP_PREFIXES)
+        or "STEEL" in name
+        or "METAL" in name
+    ):
+        return "STEEL"
+    return "CONCRETE"
+
+
+
 def compute_mesh_grid(
     bounds: BoundingBox, cell_size: float = 0.2, max_total_cells: int = 50_000_000
 ) -> Tuple[List[int], List[float]]:
@@ -306,7 +328,7 @@ def _serialize_planned_model(model, cell_size):
 
             lines.append(format_source_comment(elem))
             lines.append(
-                f"&OBST ID='{prim_id}', XB={format_xb((elem.representation_bounds or elem.bounding_box).to_xb())}, SURF_ID='CONCRETE' /"
+                f"&OBST ID='{prim_id}', XB={format_xb((elem.representation_bounds or elem.bounding_box).to_xb())}, SURF_ID='{surface_for_element(elem)}' /"
             )
 
         elif (
@@ -330,9 +352,52 @@ def _serialize_planned_model(model, cell_size):
             )
 
             lines.append(format_source_comment(elem))
-            lines.append(f"&GEOM ID='{prim_id}', SURF_ID='CONCRETE',")
+            lines.append(f"&GEOM ID='{prim_id}', SURF_ID='{surface_for_element(elem)}',")
             lines.append(f"      VERTS={verts_str},")
             lines.append(f"      FACES={faces_str} /")
+
+        elif strategy == MappingStrategy.HVAC and elem.bounding_box:
+            prim_counter += 1
+            base_id = clean_fds_id(elem.name, f"duct_{elem.step_id}")
+            duct_id = f"DUCT_{prim_counter}_{base_id}"
+            node1_id = f"NODE_{prim_counter}_A"
+            node2_id = f"NODE_{prim_counter}_B"
+            elem.fds_primitive_ids.extend([node1_id, node2_id, duct_id])
+
+            b = elem.bounding_box
+            dx = max(b.dx, 1e-4)
+            dy = max(b.dy, 1e-4)
+            dz = max(b.dz, 1e-4)
+
+            if dx >= dy and dx >= dz:
+                p1 = [b.xmin, (b.ymin + b.ymax) / 2.0, (b.zmin + b.zmax) / 2.0]
+                p2 = [b.xmax, (b.ymin + b.ymax) / 2.0, (b.zmin + b.zmax) / 2.0]
+                length = round(dx, 4)
+                area = round(dy * dz, 4)
+            elif dy >= dx and dy >= dz:
+                p1 = [(b.xmin + b.xmax) / 2.0, b.ymin, (b.zmin + b.zmax) / 2.0]
+                p2 = [(b.xmin + b.xmax) / 2.0, b.ymax, (b.zmin + b.zmax) / 2.0]
+                length = round(dy, 4)
+                area = round(dx * dz, 4)
+            else:
+                p1 = [(b.xmin + b.xmax) / 2.0, (b.ymin + b.ymax) / 2.0, b.zmin]
+                p2 = [(b.xmin + b.xmax) / 2.0, (b.ymin + b.ymax) / 2.0, b.zmax]
+                length = round(dz, 4)
+                area = round(dx * dy, 4)
+
+            p1_str = format_xb(p1)
+            p2_str = format_xb(p2)
+
+            lines.append(format_source_comment(elem))
+            lines.append(
+                f"&HVAC TYPE_ID='NODE', ID='{node1_id}', DUCT_ID='{duct_id}', XYZ={p1_str} /"
+            )
+            lines.append(
+                f"&HVAC TYPE_ID='NODE', ID='{node2_id}', DUCT_ID='{duct_id}', XYZ={p2_str} /"
+            )
+            lines.append(
+                f"&HVAC TYPE_ID='DUCT', ID='{duct_id}', NODE_ID='{node1_id}','{node2_id}', AREA={area}, LENGTH={length}, ROUGHNESS=0.001 /"
+            )
 
     lines.append("")
     lines.append("&TAIL /")

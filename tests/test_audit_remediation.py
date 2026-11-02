@@ -608,6 +608,44 @@ def test_generic_proxy_with_duct_type_class_is_mep_and_not_solid_obst(box_model)
     assert "OBST_9003" not in fds_text
 
 
+def test_duct_element_with_hvac_decision_serializes_to_fds_hvac_network(box_model):
+    """MEP duct with simulation_role='HVAC' must serialize to &HVAC namelists, not &OBST solid."""
+    from ifc_to_fds.core.canonical import CanonicalElement, MappingStrategy
+    from ifc_to_fds.geometry.mesh import box_mesh
+    from ifc_to_fds.mapping.policy import plan_mapping
+    from ifc_to_fds.mapping.exporter import serialize_fds
+    from ifc_to_fds.validation.parser import parse_fds
+
+    duct_box = BoundingBox(xmin=0.0, xmax=3.0, ymin=1.0, ymax=1.4, zmin=2.0, zmax=2.3)
+    duct_elem = CanonicalElement(
+        source_id="test_src",
+        entity_key="test_src:duct_hvac_1",
+        global_id="guid_duct_hvac_1",
+        step_id=9010,
+        ifc_type="IfcDuctSegment",
+        name="Supply_Air_Main",
+        role="PHYSICAL",
+        has_3d_geometry=True,
+        bounding_box=duct_box,
+        mesh=box_mesh(duct_box),
+        scope_decision=ScopeDecision.IN_SCOPE,
+        simulation_role="HVAC",
+    )
+    box_model.elements.append(duct_elem)
+    plan_mapping(box_model)
+    assert duct_elem.mapping_strategy == MappingStrategy.HVAC
+
+    fds_text, manifest = serialize_fds(box_model)
+    assert "&HVAC TYPE_ID='NODE'" in fds_text
+    assert "&HVAC TYPE_ID='DUCT'" in fds_text
+    assert "OBST_9010" not in fds_text
+
+    parsed = parse_fds(fds_text)
+    assert not parsed.errors
+    assert not parsed.unsupported
+
+
+
 
 
 

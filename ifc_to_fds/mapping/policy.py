@@ -102,6 +102,8 @@ def determine_element_strategy(
         return MappingStrategy.SEMANTIC_ONLY
     if element.review_status == "EXCLUDED_APPROVED":
         return MappingStrategy.EXCLUDED_APPROVED
+    if element.simulation_role == "HVAC":
+        return MappingStrategy.HVAC
     ifc_type_upper = (element.ifc_type or "").upper()
     type_class_upper = (getattr(element, "type_class", None) or "").upper()
     is_mep_type = (
@@ -115,7 +117,7 @@ def determine_element_strategy(
         or (element.review_status == "APPROVED" and element.simulation_role == "PASSIVE_OBSTACLE")
     )
     if (
-        element.simulation_role in ("REFERENCE_GEOMETRY", "HVAC")
+        element.simulation_role == "REFERENCE_GEOMETRY"
         or (is_mep_type and not is_explicit_obstacle)
         or (
             element.boundary_treatment == "PENDING_VALIDATION"
@@ -198,15 +200,18 @@ def plan_mapping(
                 )
             )
         )
-        e.simulation_role = (
-            "REFERENCE_GEOMETRY"
-            if is_thin_covering
-            or (is_review and not (is_mep and geometry_fidelity))
-            or (is_mep and not geometry_fidelity)
-            else "PASSIVE_OBSTACLE"
-        )
+        if e.simulation_role != "HVAC":
+            e.simulation_role = (
+                "REFERENCE_GEOMETRY"
+                if is_thin_covering
+                or (is_review and not (is_mep and geometry_fidelity))
+                or (is_mep and not geometry_fidelity)
+                else "PASSIVE_OBSTACLE"
+            )
         e.operational_status = (
-            "NOT_CONFIGURED"
+            "CONFIGURED"
+            if e.simulation_role == "HVAC"
+            else "NOT_CONFIGURED"
             if is_mep or e.simulation_role == "REFERENCE_GEOMETRY"
             else "NOT_APPLICABLE"
         )
@@ -219,7 +224,9 @@ def plan_mapping(
             if e.decision["action"] != "EXCLUDE":
                 e.simulation_role = e.decision["action"]
                 e.operational_status = (
-                    "NOT_CONFIGURED"
+                    "CONFIGURED"
+                    if e.simulation_role == "HVAC"
+                    else "NOT_CONFIGURED"
                     if is_mep or e.simulation_role == "REFERENCE_GEOMETRY"
                     else "NOT_APPLICABLE"
                 )
