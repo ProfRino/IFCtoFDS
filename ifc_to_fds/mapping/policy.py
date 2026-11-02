@@ -14,7 +14,6 @@ MEP_PREFIXES = (
     "IFCDAMPER",
     "IFCFLOW",
     "IFCPUMP",
-    "IFCDISTRIBUTION",
 )
 
 NON_OBSTACLE_TYPES = {
@@ -112,13 +111,13 @@ def determine_element_strategy(
         or ifc_type_upper.startswith(MEP_PREFIXES)
         or type_class_upper.startswith(MEP_PREFIXES)
     )
-    is_explicit_obstacle = (
-        bool(element.decision and element.decision.get("action") == "PASSIVE_OBSTACLE")
-        or (element.review_status == "APPROVED" and element.simulation_role == "PASSIVE_OBSTACLE")
+    is_mep_obstacle = (
+        (element.mapping_planned and element.simulation_role == "PASSIVE_OBSTACLE")
+        or bool(element.decision and element.decision.get("action") == "PASSIVE_OBSTACLE")
     )
     if (
         element.simulation_role == "REFERENCE_GEOMETRY"
-        or (is_mep_type and not is_explicit_obstacle)
+        or (is_mep_type and not is_mep_obstacle)
         or (
             element.boundary_treatment == "PENDING_VALIDATION"
             and element.representation_bounds is None
@@ -264,6 +263,7 @@ def plan_mapping(
                             e.representation_bounds = bounds
                     except (ValueError, RuntimeError) as exc:
                         e.boundary_evidence = {"intersection_error": str(exc)}
+        e.mapping_planned = True
         e.mapping_strategy = determine_element_strategy(
             e, force_all_geom, include_review_solids
         )
@@ -272,7 +272,6 @@ def plan_mapping(
             if e.mapping_strategy in (MappingStrategy.OBST, MappingStrategy.GEOM)
             else "NONE"
         )
-        e.mapping_planned = True
         e.geometry_preservation = "NOT_RUN"
         e.mapping_status = MappingStatus.INCONCLUSIVE
         e.mapping_rationale = e.decision.get(
