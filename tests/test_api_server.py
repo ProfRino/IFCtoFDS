@@ -369,7 +369,7 @@ def test_delete_running_job_with_purge_returns_cancelled_and_preserves_dir():
         _forget_job(jid, job_dir)
 
 
-def test_submit_scenario_job_executes_mesh_gate(monkeypatch):
+def test_submit_scenario_job_executes_mesh_gate(monkeypatch, tiny_ifc):
     """Scenario batch job endpoint submits scenario, evaluates mesh gate, and saves result."""
     from ifc_to_fds.server import manager
 
@@ -395,6 +395,18 @@ def test_submit_scenario_job_executes_mesh_gate(monkeypatch):
             ],
         },
     }
+
+    # A scenario must refer to an actual accepted base artifact.
+    from ifc_to_fds.pipeline import convert, save_artifacts
+    base_dir = manager.root / ("job-base-" + uuid.uuid4().hex)
+    base_result = convert([str(tiny_ifc[0])], {
+        "simulation_domain": dict(xmin=0, xmax=10, ymin=0, ymax=10, zmin=0, zmax=4)
+    }, base_dir)
+    assert base_result["status"] == "MAPPING_VERIFIED"
+    save_artifacts(base_result, base_dir / "model.fds")
+    payload["bundle_sha256"] = base_result["manifest"]["bundle_sha256"]
+    payload["scenario_data"]["bundle_sha256"] = payload["bundle_sha256"]
+    payload["scenario_data"]["ev_selections"][0]["position"] = [5, 5, .75]
 
     # Verify 429 when manager cannot accept
     monkeypatch.setattr(manager, "can_accept", lambda: False)

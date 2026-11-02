@@ -1,0 +1,361 @@
+{
+  "reviewed_commit": "16c1c9e0ff853fffb3b740f6686e2ab8dd0a2870",
+  "working_tree_changes": true,
+  "generated_utc": "2026-11-02T12:54:24.825667+00:00",
+  "output_directory": "scripts/out/logic-review-b1b36a47a589",
+  "observations": {
+    "mapping": {
+      "status": "MAPPING_VERIFIED",
+      "fds": {
+        "parse_errors": [],
+        "unsupported": [],
+        "record_counts": {
+          "HEAD": 1,
+          "TIME": 1,
+          "MESH": 1,
+          "SURF": 4,
+          "OBST": 1,
+          "TAIL": 1
+        },
+        "node_count": 0,
+        "duct_count": 0,
+        "connected_components": 0,
+        "endpoint_nodes_without_boundary": [],
+        "ducts": []
+      },
+      "gates": {
+        "syntax": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "source_inventory": {
+          "status": "PASS",
+          "reason": "All source hashes and product identities re-read from IFC; per-product reference geometry rebuilt"
+        },
+        "traceability": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "scope": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "geometry": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "structural_completeness": {
+          "status": "PASS",
+          "reason": "1 structural entities; 0 missing required solids; 0 withheld/unresolved; 0 reviewed dispositions. This checks mapping completeness, not source-building airtightness."
+        },
+        "air_path": {
+          "status": "PASS",
+          "reason": "Enclosure topology verified: 1 cavities preserved, leak ratio 0.000000e+00 within tolerance."
+        },
+        "openings": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No mapped host has source openings"
+        },
+        "mep": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "representation": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "boundary": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "domain": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "hvac": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No operational HVAC network requested"
+        },
+        "mesh_resolution": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No fire sources defined for mesh resolution checking"
+        },
+        "solver": {
+          "status": "INCONCLUSIVE",
+          "reason": "FDS executable not installed/configured"
+        },
+        "effective_geometry": {
+          "status": "INCONCLUSIVE",
+          "reason": "Effective geometry has not been proved from solver output"
+        },
+        "geometry_preservation": {
+          "status": "PASS",
+          "reason": "Saved geometry independently compared with re-read IFC"
+        },
+        "placement": {
+          "status": "PASS",
+          "reason": "Source placements re-read and preserved"
+        },
+        "golden_reference_parity": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No reference selected for general mapping"
+        }
+      }
+    },
+    "geometry-fidelity": {
+      "status": "MAPPING_VERIFIED",
+      "fds": {
+        "parse_errors": [],
+        "unsupported": [],
+        "record_counts": {
+          "HEAD": 1,
+          "TIME": 1,
+          "MESH": 1,
+          "SURF": 4,
+          "OBST": 3,
+          "TAIL": 1
+        },
+        "node_count": 0,
+        "duct_count": 0,
+        "connected_components": 0,
+        "endpoint_nodes_without_boundary": [],
+        "ducts": []
+      },
+      "gates": {
+        "syntax": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "source_inventory": {
+          "status": "PASS",
+          "reason": "All source hashes and product identities re-read from IFC; per-product reference geometry rebuilt"
+        },
+        "traceability": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "scope": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "geometry": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "structural_completeness": {
+          "status": "PASS",
+          "reason": "1 structural entities; 0 missing required solids; 0 withheld/unresolved; 0 reviewed dispositions. This checks mapping completeness, not source-building airtightness."
+        },
+        "air_path": {
+          "status": "PASS",
+          "reason": "Enclosure topology verified: 1 cavities preserved, leak ratio 0.000000e+00 within tolerance."
+        },
+        "openings": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No mapped host has source openings"
+        },
+        "mep": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "representation": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "boundary": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "domain": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "hvac": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No operational HVAC network requested"
+        },
+        "mesh_resolution": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No fire sources defined for mesh resolution checking"
+        },
+        "solver": {
+          "status": "INCONCLUSIVE",
+          "reason": "FDS executable not installed/configured"
+        },
+        "effective_geometry": {
+          "status": "INCONCLUSIVE",
+          "reason": "Effective geometry has not been proved from solver output"
+        },
+        "geometry_preservation": {
+          "status": "PASS",
+          "reason": "Saved geometry independently compared with re-read IFC"
+        },
+        "placement": {
+          "status": "PASS",
+          "reason": "Source placements re-read and preserved"
+        },
+        "golden_reference_parity": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No reference selected for general mapping"
+        }
+      }
+    },
+    "hvac": {
+      "status": "MAPPING_VERIFIED",
+      "fds": {
+        "parse_errors": [],
+        "unsupported": [],
+        "record_counts": {
+          "HEAD": 1,
+          "TIME": 1,
+          "MESH": 1,
+          "SURF": 4,
+          "OBST": 1,
+          "HVAC": 5,
+          "TAIL": 1
+        },
+        "node_count": 3,
+        "duct_count": 2,
+        "connected_components": 1,
+        "endpoint_nodes_without_boundary": [],
+        "ducts": [
+          {
+            "TYPE_ID": [
+              "DUCT"
+            ],
+            "ID": [
+              "D_3cfcd0e0c82be664a911"
+            ],
+            "NODE_ID": [
+              "N_a6aa5a2aff7ce3ead8d2",
+              "N_f04712b784bff07c82aa"
+            ],
+            "LENGTH": [
+              3.0
+            ],
+            "ROUGHNESS": [
+              0.0
+            ],
+            "AREA": [
+              0.12
+            ],
+            "PERIMETER": [
+              1.4
+            ]
+          },
+          {
+            "TYPE_ID": [
+              "DUCT"
+            ],
+            "ID": [
+              "D_74216b5004e2abcc599f"
+            ],
+            "NODE_ID": [
+              "N_789b1ad17f5c767fe543",
+              "N_a6aa5a2aff7ce3ead8d2"
+            ],
+            "LENGTH": [
+              3.0
+            ],
+            "ROUGHNESS": [
+              0.0
+            ],
+            "AREA": [
+              0.12
+            ],
+            "PERIMETER": [
+              1.4
+            ]
+          }
+        ]
+      },
+      "gates": {
+        "syntax": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "source_inventory": {
+          "status": "PASS",
+          "reason": "All source hashes and product identities re-read from IFC; per-product reference geometry rebuilt"
+        },
+        "traceability": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "scope": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "geometry": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "structural_completeness": {
+          "status": "PASS",
+          "reason": "1 structural entities; 0 missing required solids; 0 withheld/unresolved; 0 reviewed dispositions. This checks mapping completeness, not source-building airtightness."
+        },
+        "air_path": {
+          "status": "PASS",
+          "reason": "Enclosure topology verified: 1 cavities preserved, leak ratio 0.000000e+00 within tolerance."
+        },
+        "openings": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No mapped host has source openings"
+        },
+        "mep": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "representation": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "boundary": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "domain": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "hvac": {
+          "status": "PASS",
+          "reason": "Operational HVAC network independently reconstructed"
+        },
+        "mesh_resolution": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No fire sources defined for mesh resolution checking"
+        },
+        "solver": {
+          "status": "INCONCLUSIVE",
+          "reason": "FDS executable not installed/configured"
+        },
+        "effective_geometry": {
+          "status": "INCONCLUSIVE",
+          "reason": "Effective geometry has not been proved from solver output"
+        },
+        "geometry_preservation": {
+          "status": "PASS",
+          "reason": "Saved geometry independently compared with re-read IFC"
+        },
+        "placement": {
+          "status": "PASS",
+          "reason": "Source placements re-read and preserved"
+        },
+        "golden_reference_parity": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No reference selected for general mapping"
+        }
+      }
+    },
+    "unconfigured_hvac": {
+      "blocked": true,
+      "reason": "HVAC requires reviewed duct parameters and endpoint boundaries: a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:28"
+    },
+    "scenario_without_verified_base": {
+      "worker_exit_code": 1,
+      "scenario_written": false,
+      "reason": "ValueError: Verified base bundle not found; convert and verify the building first"
+    }
+  }
+}

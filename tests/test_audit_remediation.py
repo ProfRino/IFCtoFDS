@@ -572,5 +572,47 @@ def test_ventilation_ducts_default_to_reference_geometry_not_solid_obst(box_mode
     assert "GEOM_9002" not in fds_text
 
 
+def test_generic_proxy_with_duct_type_class_is_mep_and_not_solid_obst(box_model):
+    """IfcBuildingElementProxy with type_class='IfcDuctSegment' must be classified as MEP, not solid OBST."""
+    from ifc_to_fds.core.canonical import CanonicalElement, MappingStrategy
+    from ifc_to_fds.geometry.mesh import box_mesh
+    from ifc_to_fds.mapping.policy import plan_mapping, determine_element_strategy
+    from ifc_to_fds.mapping.exporter import serialize_fds
+
+    proxy_box = BoundingBox(xmin=0.0, xmax=2.0, ymin=0.0, ymax=0.5, zmin=2.0, zmax=2.5)
+    proxy_elem = CanonicalElement(
+        source_id="test_src",
+        entity_key="test_src:proxy_duct",
+        global_id="guid_proxy_duct",
+        step_id=9003,
+        ifc_type="IfcBuildingElementProxy",
+        type_class="IfcDuctSegment",
+        name="Proxy Duct",
+        role="PHYSICAL",
+        has_3d_geometry=True,
+        bounding_box=proxy_box,
+        mesh=box_mesh(proxy_box),
+        scope_decision=ScopeDecision.IN_SCOPE,
+    )
+    # Direct determine_element_strategy call before plan_mapping should also respect type_class
+    strategy_direct = determine_element_strategy(proxy_elem)
+    assert strategy_direct == MappingStrategy.NONE
+
+    box_model.elements.append(proxy_elem)
+    plan_mapping(box_model)
+    assert proxy_elem.simulation_role == "REFERENCE_GEOMETRY"
+    assert proxy_elem.mapping_strategy == MappingStrategy.NONE
+
+    fds_text, _ = serialize_fds(box_model)
+    assert "guid_proxy_duct" not in fds_text
+    assert "OBST_9003" not in fds_text
 
 
+def test_unconfigured_hvac_role_cannot_fabricate_a_network(box_model):
+    """Selecting a role without source ports/parameters is not configuration."""
+    import pytest
+    from ifc_to_fds.mapping.policy import plan_mapping
+    elem = box_model.elements[0]
+    elem.simulation_role = "HVAC"
+    with pytest.raises(ValueError, match="HVAC requires"):
+        plan_mapping(box_model)

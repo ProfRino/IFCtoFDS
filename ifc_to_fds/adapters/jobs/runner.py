@@ -103,75 +103,40 @@ class WorkerRunner:
                 if not devices and isinstance(scenario_payload, dict):
                     devices = scenario_payload.get("devices")
 
-                # Locate base FDS or mapping plan if available
-                base_fds_text = ""
-                mapping_plan = MappingPlan(cell_size=cell_size)
-                if (directory / "model.fds").is_file():
-                    base_fds_text = (directory / "model.fds").read_text(encoding="utf-8")
-                    if (directory / "model_manifest.json").is_file():
-                        try:
-                            m_raw = json.loads((directory / "model_manifest.json").read_text(encoding="utf-8"))
-                            if "mapping_plan" in m_raw:
-                                mapping_plan = MappingPlan.model_validate(m_raw["mapping_plan"])
-                        except Exception:
-                            pass
-                elif bundle_sha and directory.parent.is_dir():
-                    try:
-                        siblings = list(directory.parent.iterdir())
-                    except OSError:
-                        siblings = []
-                    for sib in siblings:
-                        if sib != directory and sib.is_dir() and (sib / "model_manifest.json").is_file():
-                            try:
-                                m_raw = json.loads((sib / "model_manifest.json").read_text(encoding="utf-8"))
-                                if m_raw.get("bundle_sha256") == bundle_sha:
-                                    if (sib / "model.fds").is_file():
-                                        base_fds_text = (sib / "model.fds").read_text(encoding="utf-8")
-                                    if (sib / "mapping_plan.json").is_file():
-                                        mapping_plan = MappingPlan.model_validate_json(
-                                            (sib / "mapping_plan.json").read_text(encoding="utf-8")
-                                        )
-                                    elif "mapping_plan" in m_raw:
-                                        mapping_plan = MappingPlan.model_validate(m_raw["mapping_plan"])
-                                    break
-                            except Exception:
-                                continue
-
-                if not base_fds_text:
-                    base_chid = f"ev_base_{bundle_sha[:8]}" if bundle_sha else "ev_base"
-                    base_fds_text = (
-                        f"&HEAD CHID='{base_chid}', TITLE='EV Fire Simulation' /\n"
-                        f"&TIME T_END=1800.0 /\n"
-                        f"&MESH IJK=50,50,20, XB=0,10,0,10,0,4 /\n"
-                        f"&TAIL /\n"
-                    )
+                from ifc_to_fds.application.services.scenario_base import load_verified_base
+                base_fds_text, mapping_plan, base_manifest = load_verified_base(directory.parent, bundle_sha)
+                if not ev_selections:
+                    raise ValueError("At least one EV selection is required")
 
                 evidence_dict = dict(mesh_gate.evidence) if mesh_gate.evidence else {}
                 bundle = None
                 if ev_selections:
                     bundle = emit_fire_scenario(
                         mapping_plan=mapping_plan,
-                        bundle_sha256=bundle_sha or ("a" * 64),
+                        bundle_sha256=base_manifest.bundle_sha256,
                         ev_selections=ev_selections,
                         opening_states=opening_states,
                         devices=devices,
                         verification_status="MAPPING_VERIFIED",
                     )
-                    # Splice into scenario.fds
-                    if "&TAIL /" in base_fds_text:
-                        scenario_fds_text = base_fds_text.replace(
-                            "&TAIL /",
-                            bundle.fds_fragment + "\n&TAIL /\n",
-                        )
-                    else:
-                        scenario_fds_text = base_fds_text + "\n" + bundle.fds_fragment + "\n&TAIL /\n"
+                    peak_hrr_mw = bundle.total_peak_hrr_mw
+                    from ifc_to_fds.fire.scenario_composer import compose_scenario
+                    scenario_fds_text = compose_scenario(base_fds_text, bundle, base_manifest)
+                    from ifc_to_fds.validation.checkers.mesh_resolution import MeshResolutionChecker
+                    from ifc_to_fds.domain.validation.model import ValidationContext, AuditConfig
+                    mesh_gate = MeshResolutionChecker().check(ValidationContext(
+                        model=object(), fds_text=scenario_fds_text, manifest=None, config=AuditConfig()
+                    )).result
+                    evidence_dict = dict(mesh_gate.evidence)
 
                     # Update &TIME T_END so FDS simulation runs the full fire duration
                     # Preserve longer T_END if already configured
                     import re
                     m_tend = re.search(r"&TIME\s+[^/]*?T_END\s*=\s*([\d.]+)", scenario_fds_text)
                     curr_tend = float(m_tend.group(1)) if m_tend else 0.0
-                    target_tend = max(curr_tend, 1800.0)
+                    from ifc_to_fds.validation.parser import parse_fds
+                    ramp_end = max((r.values.get("T", [0])[0] for r in parse_fds(scenario_fds_text).records if r.kind == "RAMP"), default=0)
+                    target_tend = max(curr_tend, 1800.0, ramp_end)
                     if isinstance(scenario_input, dict) and "t_end_s" in scenario_input:
                         try:
                             target_tend = max(target_tend, float(scenario_input["t_end_s"]))
@@ -210,6 +175,7 @@ class WorkerRunner:
                     "status": "COMPLETED",
                     "verdict": mesh_gate.status.value,
                     "mesh_status": mesh_gate.status.value,
+                    "simulation_status": "NOT_RUN",
                     "peak_hrr_mw": float(peak_hrr_mw),
                     "evidence": evidence_dict,
                     "artifacts": available_artifacts,

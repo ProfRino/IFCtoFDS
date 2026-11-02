@@ -5,6 +5,17 @@ from ifc_to_fds.geometry.mesh import is_axis_aligned_box, valid_solid
 from ifc_to_fds.diagnostics import operation
 from ifc_to_fds.mep.classifier import MEP_TYPES
 
+MEP_PREFIXES = (
+    "IFCDUCT",
+    "IFCPIPE",
+    "IFCFAN",
+    "IFCVALVE",
+    "IFCAIRTERMINAL",
+    "IFCDAMPER",
+    "IFCFLOW",
+    "IFCPUMP",
+)
+
 NON_OBSTACLE_TYPES = {
     "IFCSPACE",
     "IFCANNOTATION",
@@ -44,12 +55,14 @@ def validate_decisions(decisions):
             "reviewer",
             "evidence",
             "factors",
+            "hvac",
         }:
             raise ValueError(f"Invalid decision: {key}")
         if decision.get("action") not in (
             "EXCLUDE",
             "REFERENCE_GEOMETRY",
             "PASSIVE_OBSTACLE",
+            "HVAC",
         ):
             raise ValueError(f"Invalid decision action: {key}")
         if not all(
@@ -59,6 +72,11 @@ def validate_decisions(decisions):
             raise ValueError(
                 f"Decision requires policy version, rationale, reviewer and evidence: {key}"
             )
+        if "hvac" in decision:
+            if decision["action"] != "HVAC":
+                raise ValueError("hvac parameters require action=HVAC")
+            from ifc_to_fds.domain.mep.hvac import DuctSpec
+            DuctSpec.model_validate(decision["hvac"])
         if decision["action"] == "PASSIVE_OBSTACLE" and (
             not isinstance(decision.get("factors"), dict)
             or set(decision["factors"]) != PROMOTION_FACTORS
@@ -89,26 +107,23 @@ def determine_element_strategy(
         return MappingStrategy.SEMANTIC_ONLY
     if element.review_status == "EXCLUDED_APPROVED":
         return MappingStrategy.EXCLUDED_APPROVED
+    if element.simulation_role == "HVAC":
+        return MappingStrategy.HVAC
+    ifc_type_upper = (element.ifc_type or "").upper()
+    type_class_upper = (getattr(element, "type_class", None) or "").upper()
+    is_mep_type = (
+        ifc_type_upper in MEP_TYPES
+        or type_class_upper in MEP_TYPES
+        or ifc_type_upper.startswith(MEP_PREFIXES)
+        or type_class_upper.startswith(MEP_PREFIXES)
+    )
+    is_mep_obstacle = (
+        (element.mapping_planned and element.simulation_role == "PASSIVE_OBSTACLE")
+        or bool(element.decision and element.decision.get("action") == "PASSIVE_OBSTACLE")
+    )
     if (
         element.simulation_role == "REFERENCE_GEOMETRY"
-        or (
-            (
-                (element.ifc_type or "").upper() in MEP_TYPES
-                or (element.ifc_type or "").upper().startswith(
-                    (
-                        "IFCDUCT",
-                        "IFCPIPE",
-                        "IFCFAN",
-                        "IFCVALVE",
-                        "IFCAIRTERMINAL",
-                        "IFCDAMPER",
-                        "IFCFLOW",
-                        "IFCPUMP",
-                    )
-                )
-            )
-            and element.simulation_role != "PASSIVE_OBSTACLE"
-        )
+        or (is_mep_type and not is_mep_obstacle)
         or (
             element.boundary_treatment == "PENDING_VALIDATION"
             and element.representation_bounds is None
@@ -176,30 +191,8 @@ def plan_mapping(
             or e.ports
             or ifc_type_upper in MEP_TYPES
             or type_class_upper in MEP_TYPES
-            or ifc_type_upper.startswith(
-                (
-                    "IFCDUCT",
-                    "IFCPIPE",
-                    "IFCFAN",
-                    "IFCVALVE",
-                    "IFCAIRTERMINAL",
-                    "IFCDAMPER",
-                    "IFCFLOW",
-                    "IFCPUMP",
-                )
-            )
-            or type_class_upper.startswith(
-                (
-                    "IFCDUCT",
-                    "IFCPIPE",
-                    "IFCFAN",
-                    "IFCVALVE",
-                    "IFCAIRTERMINAL",
-                    "IFCDAMPER",
-                    "IFCFLOW",
-                    "IFCPUMP",
-                )
-            )
+            or ifc_type_upper.startswith(MEP_PREFIXES)
+            or type_class_upper.startswith(MEP_PREFIXES)
         )
         is_thin_covering = (
             e.ifc_type.upper() == "IFCCOVERING"
@@ -212,15 +205,18 @@ def plan_mapping(
                 )
             )
         )
-        e.simulation_role = (
-            "REFERENCE_GEOMETRY"
-            if is_thin_covering
-            or (is_review and not (is_mep and geometry_fidelity))
-            or (is_mep and not geometry_fidelity)
-            else "PASSIVE_OBSTACLE"
-        )
+        if e.simulation_role != "HVAC":
+            e.simulation_role = (
+                "REFERENCE_GEOMETRY"
+                if is_thin_covering
+                or (is_review and not (is_mep and geometry_fidelity))
+                or (is_mep and not geometry_fidelity)
+                else "PASSIVE_OBSTACLE"
+            )
         e.operational_status = (
-            "NOT_CONFIGURED"
+            "CONFIGURED"
+            if e.simulation_role == "HVAC"
+            else "NOT_CONFIGURED"
             if is_mep or e.simulation_role == "REFERENCE_GEOMETRY"
             else "NOT_APPLICABLE"
         )
@@ -233,7 +229,9 @@ def plan_mapping(
             if e.decision["action"] != "EXCLUDE":
                 e.simulation_role = e.decision["action"]
                 e.operational_status = (
-                    "NOT_CONFIGURED"
+                    "CONFIGURED"
+                    if e.simulation_role == "HVAC"
+                    else "NOT_CONFIGURED"
                     if is_mep or e.simulation_role == "REFERENCE_GEOMETRY"
                     else "NOT_APPLICABLE"
                 )
@@ -245,6 +243,7 @@ def plan_mapping(
             e.scope_decision
             in (ScopeDecision.IN_SCOPE, ScopeDecision.BOUNDARY_RETAINED)
             and e.role == "PHYSICAL"
+            and e.simulation_role != "HVAC"
             and e.bounding_box
             and model.simulation_domain
         ):
@@ -271,15 +270,15 @@ def plan_mapping(
                             e.representation_bounds = bounds
                     except (ValueError, RuntimeError) as exc:
                         e.boundary_evidence = {"intersection_error": str(exc)}
+        e.mapping_planned = True
         e.mapping_strategy = determine_element_strategy(
             e, force_all_geom, include_review_solids
         )
         e.fds_representation = (
             e.mapping_strategy.value
-            if e.mapping_strategy in (MappingStrategy.OBST, MappingStrategy.GEOM)
+            if e.mapping_strategy in (MappingStrategy.OBST, MappingStrategy.GEOM, MappingStrategy.HVAC)
             else "NONE"
         )
-        e.mapping_planned = True
         e.geometry_preservation = "NOT_RUN"
         e.mapping_status = MappingStatus.INCONCLUSIVE
         e.mapping_rationale = e.decision.get(
@@ -335,4 +334,6 @@ def plan_mapping(
                 "; valid IFC host solid retained, including kernel-applied voids; "
                 "opening evidence incomplete, opening verification INCONCLUSIVE"
             )
+    from ifc_to_fds.mep.network import build_hvac_network
+    model.hvac_network = build_hvac_network(model)  # Validated independently of serialization.
     return model

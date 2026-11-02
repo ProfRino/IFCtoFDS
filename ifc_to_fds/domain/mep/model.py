@@ -19,6 +19,7 @@ class SimulationRole(str, Enum):
     REFERENCE_GEOMETRY = "REFERENCE_GEOMETRY"
     PASSIVE_OBSTACLE = "PASSIVE_OBSTACLE"
     OPERATIONAL_MEP = "OPERATIONAL_MEP"
+    HVAC = "HVAC"
 
 
 class OperationalStatus(str, Enum):

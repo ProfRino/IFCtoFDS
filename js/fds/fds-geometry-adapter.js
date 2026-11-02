@@ -9,6 +9,7 @@
             vents: [],
             holes: [],
             geoms: [],
+            hvac: [],
             bounds: null,
             triangleCount: 0,
             diagnostics: diagnostics
@@ -27,6 +28,27 @@
             }
         });
 
+        var hvacNodes = Object.create(null);
+        (fdsData.hvac || []).forEach(function (record) {
+            if (record.TYPE_ID !== 'NODE') return;
+            var xyz = record.XYZ;
+            if (record.VENT_ID) {
+                var vent = model.vents.filter(function (v) { return v.id === record.VENT_ID; })[0];
+                if (vent) xyz = [0, 1, 2].map(function (a) { return (vent.xb[2*a] + vent.xb[2*a+1]) / 2; });
+            }
+            if (Array.isArray(xyz) && xyz.length === 3 && xyz.every(Number.isFinite)) hvacNodes[record.ID] = xyz.slice();
+        });
+        (fdsData.hvac || []).forEach(function (record) {
+            if (record.TYPE_ID !== 'DUCT') return;
+            var ids = record.NODE_ID || [];
+            if (ids.length === 2 && hvacNodes[ids[0]] && hvacNodes[ids[1]]) {
+                model.hvac.push({id: record.ID, vertices: [hvacNodes[ids[0]].slice(), hvacNodes[ids[1]].slice()],
+                    ifcSource: record.__ifcSource || null, raw: record});
+            } else {
+                ns.core.addDiagnostic(diagnostics, 'warning', 'HVAC duct not displayed', record.ID + ': missing node coordinates or vent');
+            }
+        });
+
         // Restore the IFC world frame for display only. The saved FDS remains
         // rebased for the solver; IFC/FDS overlays and clipping share one frame.
         var offset = fdsData.coordinateRebase || [0, 0, 0];
@@ -37,6 +59,7 @@
                     item.xb = item.xb.map(function (value, axis) { return value + offset[Math.floor(axis / 2)]; });
                 });
             });
+            model.hvac.forEach(function (duct) { duct.vertices = duct.vertices.map(function (p) { return p.map(function (v, a) { return v + offset[a]; }); }); });
             model.geoms.forEach(function (geom) {
                 geom.vertices = geom.vertices.map(function (vertex) { return vertex.map(function (value, axis) { return value + offset[axis]; }); });
                 if (geom.origin) geom.origin = geom.origin.map(function (value, axis) { return value + offset[axis]; });
@@ -44,7 +67,7 @@
         }
         model.bounds = computeBounds(model);
 
-        if (!model.obsts.length && !model.geoms.length && !model.vents.length) {
+        if (!model.obsts.length && !model.geoms.length && !model.vents.length && !model.hvac.length) {
             ns.core.addDiagnostic(
                 diagnostics,
                 'info',
@@ -191,6 +214,7 @@
             }
         });
 
+        model.hvac.forEach(function (duct) { duct.vertices.forEach(function (p) { include(p[0], p[1], p[2]); }); });
         return bounds;
     }
 

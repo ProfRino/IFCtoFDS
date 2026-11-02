@@ -46,11 +46,13 @@ jobs:
       - run: node scripts/test-ui-recovery.js
       - run: node scripts/test-artifact-downloads.js
       - run: node scripts/test-legacy-geom-compatibility.js
+      - run: node scripts/test-hvac-viewer.js
       - run: node scripts/generate-inline-parse-worker.js
       - run: node scripts/generate-inline-export-worker.js
       - run: git diff --exit-code -- js/workers/*-inline.js
   browser:
-    runs-on: ubuntu-latest
+    # Playwright 1.58 supports Ubuntu 24.04; ubuntu-latest may select a newer OS.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4

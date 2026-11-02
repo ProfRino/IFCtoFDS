@@ -1,0 +1,21 @@
+&HEAD CHID='connected-ducts', TITLE='IFCtoFDS conversion; see acceptance report' /
+&TIME T_END=0.0 /
+&MESH IJK=50,25,25, XB=0,10,0,5,0,5 /
+
+&SURF ID='CONCRETE', COLOR='GRAY', DEFAULT=.TRUE. /
+&SURF ID='GLASS', COLOR='SKY BLUE', TRANSPARENCY=0.5 /
+&SURF ID='STEEL', COLOR='DIM GRAY' /
+&SURF ID='WOOD', COLOR='SANDY BROWN' /
+
+! IFC_SOURCE {"entity_key": "d19b94d25eadf49402e34b5a36ec7bf80bb2dc9c4df6a2ef7da7f86994737364:12", "source_id": "d19b94d25eadf49402e34b5a36ec7bf80bb2dc9c4df6a2ef7da7f86994737364", "global_id": "2ZZHigaxrACuqrUHnZARIN", "step_id": 12, "ifc_type": "IfcWall"}
+&OBST ID='OBST_1_Wall', XB=0,8,0,0.2,0,4, SURF_ID='CONCRETE' /
+! IFC_SOURCE {"entity_key": "d19b94d25eadf49402e34b5a36ec7bf80bb2dc9c4df6a2ef7da7f86994737364:28", "source_id": "d19b94d25eadf49402e34b5a36ec7bf80bb2dc9c4df6a2ef7da7f86994737364", "global_id": "1qhEYy9wT1t8FaKPxk6tYW", "step_id": 28, "ifc_type": "IfcDuctSegment"}
+&HVAC TYPE_ID='NODE', ID='NODE_2_A', DUCT_ID='DUCT_2_Duct_A', XYZ=1,1.2,2.15 /
+&HVAC TYPE_ID='NODE', ID='NODE_2_B', DUCT_ID='DUCT_2_Duct_A', XYZ=4,1.2,2.15 /
+&HVAC TYPE_ID='DUCT', ID='DUCT_2_Duct_A', NODE_ID='NODE_2_A','NODE_2_B', AREA=0.12, LENGTH=3.0, ROUGHNESS=0.001 /
+! IFC_SOURCE {"entity_key": "d19b94d25eadf49402e34b5a36ec7bf80bb2dc9c4df6a2ef7da7f86994737364:43", "source_id": "d19b94d25eadf49402e34b5a36ec7bf80bb2dc9c4df6a2ef7da7f86994737364", "global_id": "3TtVXhcg94194v4FT_xc4n", "step_id": 43, "ifc_type": "IfcDuctSegment"}
+&HVAC TYPE_ID='NODE', ID='NODE_3_A', DUCT_ID='DUCT_3_Duct_B', XYZ=4,1.2,2.15 /
+&HVAC TYPE_ID='NODE', ID='NODE_3_B', DUCT_ID='DUCT_3_Duct_B', XYZ=7,1.2,2.15 /
+&HVAC TYPE_ID='DUCT', ID='DUCT_3_Duct_B', NODE_ID='NODE_3_A','NODE_3_B', AREA=0.12, LENGTH=3.0, ROUGHNESS=0.001 /
+
+&TAIL /

@@ -1,0 +1,44 @@
+{
+  "simulation_domain": {
+    "xmin": 0,
+    "xmax": 10,
+    "ymin": 0,
+    "ymax": 5,
+    "zmin": 0,
+    "zmax": 5
+  },
+  "decisions": {
+    "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:28": {
+      "action": "HVAC",
+      "policy_version": "audit-2026-11-02",
+      "rationale": "Exercise existing HVAC path",
+      "reviewer": "synthetic audit",
+      "evidence": "Generated IFC with explicit port relationship",
+      "hvac": {
+        "area_m2": 0.12,
+        "perimeter_m": 1.4,
+        "endpoints": {
+          "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:60": {
+            "kind": "AMBIENT"
+          }
+        }
+      }
+    },
+    "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:43": {
+      "action": "HVAC",
+      "policy_version": "audit-2026-11-02",
+      "rationale": "Exercise existing HVAC path",
+      "reviewer": "synthetic audit",
+      "evidence": "Generated IFC with explicit port relationship",
+      "hvac": {
+        "area_m2": 0.12,
+        "perimeter_m": 1.4,
+        "endpoints": {
+          "a3044a2991a1e5194be1bcef16de6f0e7bb0cc4f2854f9dde1845fb90228722d:75": {
+            "kind": "AMBIENT"
+          }
+        }
+      }
+    }
+  }
+}

@@ -5,7 +5,7 @@ from typing import Any
 from .model import MappingDecision, MappingPlan
 
 
-def build_mapping_plan(model: Any, cell_size: float = 0.2) -> MappingPlan:
+def build_mapping_plan(model: Any, cell_size: float = 0.2, hvac_network=None) -> MappingPlan:
     """Snapshot mapping intent without sharing mutable policy evidence with the model."""
     decisions = []
     for e in model.elements:
@@ -29,6 +29,7 @@ def build_mapping_plan(model: Any, cell_size: float = 0.2) -> MappingPlan:
         )
     return MappingPlan(
         decisions=decisions,
+        hvac_network=hvac_network if hvac_network is not None else model.hvac_network,
         simulation_domain=model.simulation_domain
         or (
             model.model_bounds

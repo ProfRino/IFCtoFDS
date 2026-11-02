@@ -12,6 +12,7 @@
             vents: [],
             holes: [],
             geoms: [],
+            hvac: [],
             surfs: {},
             rawRecords: records,
             diagnostics: []
@@ -29,7 +30,7 @@
                 pendingIfcSource = normalizeIfcSource(params);
                 return;
             }
-            if (pendingIfcSource && (record.group === 'OBST' || record.group === 'GEOM')) {
+            if (pendingIfcSource && (record.group === 'OBST' || record.group === 'GEOM' || record.group === 'HVAC' || record.group === 'VENT')) {
                 params.__ifcSource = pendingIfcSource;
                 pendingIfcSource = null;
             }
@@ -40,6 +41,7 @@
             else if (record.group === 'VENT') data.vents.push(normalizeBoxRecord(params, 'VENT'));
             else if (record.group === 'HOLE') data.holes.push(normalizeBoxRecord(params, 'HOLE'));
             else if (record.group === 'GEOM') data.geoms.push(normalizeGeomRecord(params));
+            else if (record.group === 'HVAC') data.hvac.push(params);
             else if (record.group === 'SURF' && params.ID) data.surfs[params.ID] = params;
         });
 

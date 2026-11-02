@@ -50,6 +50,7 @@
         this.ventGroup = new THREE.Group();
         this.holeGroup = new THREE.Group();
         this.geomGroup = new THREE.Group();
+        this.hvacGroup = new THREE.Group();
         this.ifcSolidGroup = new THREE.Group();
         this.ifcReferenceGroup = new THREE.Group();
         this.groundGrid = null;
@@ -107,7 +108,7 @@
         this.ifcSolidGroup.name = 'IFC solids';
         this.ifcReferenceGroup.name = 'IFC reference';
         this.scene.add(this.fdsGroup, this.ifcGroup);
-        this.fdsGroup.add(this.meshGroup, this.obstGroup, this.ventGroup, this.holeGroup, this.geomGroup);
+        this.fdsGroup.add(this.meshGroup, this.obstGroup, this.ventGroup, this.holeGroup, this.geomGroup, this.hvacGroup);
         this.ifcGroup.add(this.ifcSolidGroup, this.ifcReferenceGroup);
         this.ifcReferenceGroup.visible = false;
 
@@ -187,6 +188,7 @@
         clearGroup(this.ventGroup);
         clearGroup(this.holeGroup);
         clearGroup(this.geomGroup);
+        clearGroup(this.hvacGroup);
 
         var self = this;
         (model.meshes || []).forEach(function (mesh) { self.meshGroup.add(self.makeWireBox(mesh, 0x4488ff, 'MESH')); });
@@ -194,6 +196,7 @@
         (model.vents || []).forEach(function (vent) { self.ventGroup.add(self.makeBox(vent, 0xff6b35, 'VENT', true)); });
         (model.holes || []).forEach(function (hole) { self.holeGroup.add(self.makeBox(hole, 0x00e5ff, 'HOLE', true)); });
         (model.geoms || []).forEach(function (geom) { self.geomGroup.add(self.makeGeom(geom)); });
+        (model.hvac || []).forEach(function (duct) { self.hvacGroup.add(self.makeHvacDuct(duct)); });
 
         // Opt FDS materials out of the global smooth clipping — for FDS the clip bars are
         // expected to make whole primitives appear/disappear rather than slicing through them.
@@ -815,6 +818,14 @@
         return box;
     };
 
+    SceneViewer.prototype.makeHvacDuct = function (duct) {
+        var geometry = new THREE.BufferGeometry().setFromPoints(duct.vertices.map(function (p) { return toThree(p[0], p[1], p[2]); }));
+        var material = new THREE.LineBasicMaterial({color: 0x22a6b3, transparent: true, opacity: this.opacity});
+        var line = new THREE.Line(geometry, material);
+        line.userData = makeUserData('HVAC DUCT', duct);
+        return line;
+    };
+
     SceneViewer.prototype.makeGeom = function (geom) {
         if (geom.type === 'sphere') {
             var sphereGeometry = new THREE.SphereGeometry(geom.radius, 24, 14);
@@ -1257,6 +1268,7 @@
             vents: this.ventGroup,
             holes: this.holeGroup,
             geoms: this.geomGroup,
+            hvac: this.hvacGroup,
             ifcReference: this.ifcReferenceGroup,
             groundGrid: this.groundGrid
         };
@@ -1313,7 +1325,7 @@
         if (this.opacity === 0) this.clearHover();
 
         var fdsOpacity = this.opacity;
-        [this.meshGroup, this.obstGroup, this.ventGroup, this.geomGroup].forEach(function (group) {
+        [this.meshGroup, this.obstGroup, this.ventGroup, this.geomGroup, this.hvacGroup].forEach(function (group) {
             group.traverse(function (node) {
                 if (node.material && node.material.opacity !== undefined) {
                     applyGhostMaterial(node.material, false);

@@ -253,11 +253,11 @@
                             <label class="form-label" for="verified-profile">Mapping Profile</label>
                             <select id="verified-profile" class="form-select">
                                 <option value="mapping" selected>Mapping</option>
-                                <option value="geometry-fidelity">Geometry Fidelity (Include HVAC / Fire Protection)</option>
+                                <option value="geometry-fidelity">Geometry Fidelity (Passive Equipment Shapes)</option>
                                 <option value="research-basement">Research Reference</option>
                                 <option value="simulation">Simulation (Solver Evidence Required)</option>
                             </select>
-                            <small>Geometry Fidelity includes equipment shapes. Equipment operation remains unconfigured.</small>
+                            <small>Geometry Fidelity exports equipment as passive shapes. To export an airflow network, supply reviewed HVAC parameters and endpoint boundaries in the Decisions file.</small>
                         </div>
                         <details id="verified-advanced" class="config-section" style="cursor:pointer">
                             <summary class="section-title" style="user-select:none"><i data-lucide="settings-2" style="width:14px;height:14px"></i> Advanced / Diagnostic Controls</summary>
@@ -437,6 +437,7 @@
                     <label class="checkbox-card"><input id="show-obst" type="checkbox" checked><span>FDS OBST</span></label>
                     <label class="checkbox-card"><input id="show-hole" type="checkbox" checked><span>FDS HOLE</span></label>
                     <label class="checkbox-card"><input id="show-geom" type="checkbox" checked><span>FDS GEOM</span></label>
+                    <label class="checkbox-card"><input id="show-hvac" type="checkbox" checked><span>HVAC Network</span></label>
                     <label class="checkbox-card"><input id="show-grid" type="checkbox" checked><span>Ground Grid</span></label>
                 </div>
 

@@ -8,6 +8,7 @@ __all__ = ["MappingStatus", "MappingStrategy"]
 class MappingStatus(str, Enum):
     EXCLUDED_SCOPE = "EXCLUDED_SCOPE"
     REFERENCE_PRESERVED = "REFERENCE_PRESERVED"
+    OPERATIONAL_MAPPED = "OPERATIONAL_MAPPED"
     REVIEW_REQUIRED = "REVIEW_REQUIRED"
     MATCHED = "MATCHED"
     DEVIATED = "DEVIATED"
@@ -28,3 +29,5 @@ class MappingStrategy(str, Enum):
     VOXEL = "VOXEL"
     SEMANTIC_ONLY = "SEMANTIC_ONLY"
     EXCLUDED_APPROVED = "EXCLUDED_APPROVED"
+    HVAC = "HVAC"
+

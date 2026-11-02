@@ -1,0 +1,709 @@
+{
+  "reviewed_commit": "16c1c9e0ff853fffb3b740f6686e2ab8dd0a2870",
+  "generated_utc": "2026-11-02T12:27:09.484863+00:00",
+  "output_directory": "scripts/out/logic-review-8dcabdb8bff9",
+  "runtime": {
+    "python": "3.10.21",
+    "ifcopenshell": "0.9.0.post1"
+  },
+  "architecture": {
+    "source_files": 163,
+    "source_lines": 27959,
+    "largest_files": [
+      {
+        "file": "js/viewer/scene-viewer.js",
+        "lines": 2104
+      },
+      {
+        "file": "js/ifc/ifc-adapter.js",
+        "lines": 2048
+      },
+      {
+        "file": "js/app-controller.js",
+        "lines": 1803
+      },
+      {
+        "file": "js/fds/fds-exporter.js",
+        "lines": 1416
+      },
+      {
+        "file": "js/workbench/panels/ev-scenario-panel.js",
+        "lines": 835
+      },
+      {
+        "file": "ifc_to_fds/validation/engine.py",
+        "lines": 684
+      },
+      {
+        "file": "ifc_to_fds/adapters/jobs/service.py",
+        "lines": 566
+      },
+      {
+        "file": "ifc_to_fds/validation/checkers/mesh_resolution.py",
+        "lines": 530
+      },
+      {
+        "file": "ifc_to_fds/fire/scenario_emitter.py",
+        "lines": 529
+      },
+      {
+        "file": "ifc_to_fds/server.py",
+        "lines": 518
+      },
+      {
+        "file": "ifc_to_fds/validation/checkers/air_path.py",
+        "lines": 480
+      },
+      {
+        "file": "ifc_to_fds/validation/golden/gate.py",
+        "lines": 438
+      },
+      {
+        "file": "js/workbench/state/selection-store.js",
+        "lines": 412
+      },
+      {
+        "file": "ifc_to_fds/mapping/exporter.py",
+        "lines": 408
+      },
+      {
+        "file": "ifc_to_fds/geometry/mesh.py",
+        "lines": 357
+      }
+    ]
+  },
+  "solver_executed": false,
+  "pyrosim_import_executed": false,
+  "observations": {
+    "mapping": {
+      "status": "MAPPING_VERIFIED",
+      "source_connections": 1,
+      "elements": [
+        {
+          "ifc_type": "IfcDuctSegment",
+          "name": "Duct A",
+          "simulation_role": "REFERENCE_GEOMETRY",
+          "mapping_strategy": "NONE",
+          "fds_representation": "NONE",
+          "operational_status": "NOT_CONFIGURED"
+        },
+        {
+          "ifc_type": "IfcDuctSegment",
+          "name": "Duct B",
+          "simulation_role": "REFERENCE_GEOMETRY",
+          "mapping_strategy": "NONE",
+          "fds_representation": "NONE",
+          "operational_status": "NOT_CONFIGURED"
+        }
+      ],
+      "fds": {
+        "parse_errors": [],
+        "unsupported": [],
+        "record_counts": {
+          "HEAD": 1,
+          "TIME": 1,
+          "MESH": 1,
+          "SURF": 4,
+          "OBST": 1,
+          "TAIL": 1
+        },
+        "node_count": 0,
+        "duct_count": 0,
+        "connected_components": 0,
+        "endpoint_nodes_without_boundary": [],
+        "ducts": []
+      },
+      "gates": {
+        "syntax": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "source_inventory": {
+          "status": "PASS",
+          "reason": "All source hashes and product identities re-read from IFC; per-product reference geometry rebuilt"
+        },
+        "traceability": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "scope": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "geometry": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "structural_completeness": {
+          "status": "PASS",
+          "reason": "1 structural entities; 0 missing required solids; 0 withheld/unresolved; 0 reviewed dispositions. This checks mapping completeness, not source-building airtightness."
+        },
+        "air_path": {
+          "status": "PASS",
+          "reason": "Enclosure topology verified: 1 cavities preserved, leak ratio 0.000000e+00 within tolerance."
+        },
+        "openings": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No mapped host has source openings"
+        },
+        "mep": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "representation": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "boundary": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "domain": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "solver": {
+          "status": "INCONCLUSIVE",
+          "reason": "FDS executable not installed/configured"
+        },
+        "effective_geometry": {
+          "status": "INCONCLUSIVE",
+          "reason": "Effective geometry has not been proved from solver output"
+        },
+        "geometry_preservation": {
+          "status": "PASS",
+          "reason": "Saved geometry independently compared with re-read IFC"
+        },
+        "placement": {
+          "status": "PASS",
+          "reason": "Source placements re-read and preserved"
+        },
+        "golden_reference_parity": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No reference selected for general mapping"
+        }
+      },
+      "findings": []
+    },
+    "geometry-fidelity": {
+      "status": "MAPPING_VERIFIED",
+      "source_connections": 1,
+      "elements": [
+        {
+          "ifc_type": "IfcDuctSegment",
+          "name": "Duct A",
+          "simulation_role": "PASSIVE_OBSTACLE",
+          "mapping_strategy": "OBST",
+          "fds_representation": "OBST",
+          "operational_status": "NOT_CONFIGURED"
+        },
+        {
+          "ifc_type": "IfcDuctSegment",
+          "name": "Duct B",
+          "simulation_role": "PASSIVE_OBSTACLE",
+          "mapping_strategy": "OBST",
+          "fds_representation": "OBST",
+          "operational_status": "NOT_CONFIGURED"
+        }
+      ],
+      "fds": {
+        "parse_errors": [],
+        "unsupported": [],
+        "record_counts": {
+          "HEAD": 1,
+          "TIME": 1,
+          "MESH": 1,
+          "SURF": 4,
+          "OBST": 3,
+          "TAIL": 1
+        },
+        "node_count": 0,
+        "duct_count": 0,
+        "connected_components": 0,
+        "endpoint_nodes_without_boundary": [],
+        "ducts": []
+      },
+      "gates": {
+        "syntax": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "source_inventory": {
+          "status": "PASS",
+          "reason": "All source hashes and product identities re-read from IFC; per-product reference geometry rebuilt"
+        },
+        "traceability": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "scope": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "geometry": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "structural_completeness": {
+          "status": "PASS",
+          "reason": "1 structural entities; 0 missing required solids; 0 withheld/unresolved; 0 reviewed dispositions. This checks mapping completeness, not source-building airtightness."
+        },
+        "air_path": {
+          "status": "PASS",
+          "reason": "Enclosure topology verified: 1 cavities preserved, leak ratio 0.000000e+00 within tolerance."
+        },
+        "openings": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No mapped host has source openings"
+        },
+        "mep": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "representation": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "boundary": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "domain": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "solver": {
+          "status": "INCONCLUSIVE",
+          "reason": "FDS executable not installed/configured"
+        },
+        "effective_geometry": {
+          "status": "INCONCLUSIVE",
+          "reason": "Effective geometry has not been proved from solver output"
+        },
+        "geometry_preservation": {
+          "status": "PASS",
+          "reason": "Saved geometry independently compared with re-read IFC"
+        },
+        "placement": {
+          "status": "PASS",
+          "reason": "Source placements re-read and preserved"
+        },
+        "golden_reference_parity": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No reference selected for general mapping"
+        }
+      },
+      "findings": []
+    },
+    "hvac": {
+      "status": "REJECTED",
+      "source_connections": 1,
+      "elements": [
+        {
+          "ifc_type": "IfcDuctSegment",
+          "name": "Duct A",
+          "simulation_role": "HVAC",
+          "mapping_strategy": "HVAC",
+          "fds_representation": "NONE",
+          "operational_status": "CONFIGURED"
+        },
+        {
+          "ifc_type": "IfcDuctSegment",
+          "name": "Duct B",
+          "simulation_role": "HVAC",
+          "mapping_strategy": "HVAC",
+          "fds_representation": "NONE",
+          "operational_status": "CONFIGURED"
+        }
+      ],
+      "fds": {
+        "parse_errors": [],
+        "unsupported": [],
+        "record_counts": {
+          "HEAD": 1,
+          "TIME": 1,
+          "MESH": 1,
+          "SURF": 4,
+          "OBST": 1,
+          "HVAC": 6,
+          "TAIL": 1
+        },
+        "node_count": 4,
+        "duct_count": 2,
+        "connected_components": 2,
+        "endpoint_nodes_without_boundary": [
+          "NODE_2_A",
+          "NODE_2_B",
+          "NODE_3_A",
+          "NODE_3_B"
+        ],
+        "ducts": [
+          {
+            "TYPE_ID": [
+              "DUCT"
+            ],
+            "ID": [
+              "DUCT_2_Duct_A"
+            ],
+            "NODE_ID": [
+              "NODE_2_A",
+              "NODE_2_B"
+            ],
+            "AREA": [
+              0.12
+            ],
+            "LENGTH": [
+              3.0
+            ],
+            "ROUGHNESS": [
+              0.001
+            ]
+          },
+          {
+            "TYPE_ID": [
+              "DUCT"
+            ],
+            "ID": [
+              "DUCT_3_Duct_B"
+            ],
+            "NODE_ID": [
+              "NODE_3_A",
+              "NODE_3_B"
+            ],
+            "AREA": [
+              0.12
+            ],
+            "LENGTH": [
+              3.0
+            ],
+            "ROUGHNESS": [
+              0.001
+            ]
+          }
+        ]
+      },
+      "gates": {
+        "syntax": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "source_inventory": {
+          "status": "PASS",
+          "reason": "All source hashes and product identities re-read from IFC; per-product reference geometry rebuilt"
+        },
+        "traceability": {
+          "status": "FAIL",
+          "reason": "Manifest primitive set differs from serialized FDS; Missing required FDS solid: 1qhEYy9wT1t8FaKPxk6tYW; Missing required FDS solid: 3TtVXhcg94194v4FT_xc4n"
+        },
+        "scope": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "geometry": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "structural_completeness": {
+          "status": "PASS",
+          "reason": "1 structural entities; 0 missing required solids; 0 withheld/unresolved; 0 reviewed dispositions. This checks mapping completeness, not source-building airtightness."
+        },
+        "air_path": {
+          "status": "PASS",
+          "reason": "Enclosure topology verified: 1 cavities preserved, leak ratio 0.000000e+00 within tolerance."
+        },
+        "openings": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No mapped host has source openings"
+        },
+        "mep": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "representation": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "boundary": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "domain": {
+          "status": "PASS",
+          "reason": ""
+        },
+        "solver": {
+          "status": "INCONCLUSIVE",
+          "reason": "FDS executable not installed/configured"
+        },
+        "effective_geometry": {
+          "status": "INCONCLUSIVE",
+          "reason": "Effective geometry has not been proved from solver output"
+        },
+        "geometry_preservation": {
+          "status": "PASS",
+          "reason": "Saved geometry independently compared with re-read IFC"
+        },
+        "placement": {
+          "status": "PASS",
+          "reason": "Source placements re-read and preserved"
+        },
+        "golden_reference_parity": {
+          "status": "NOT_APPLICABLE",
+          "reason": "No reference selected for general mapping"
+        }
+      },
+      "findings": [
+        {
+          "severity": "P0",
+          "category": "traceability",
+          "detail": "Manifest primitive set differs from serialized FDS"
+        },
+        {
+          "severity": "P0",
+          "category": "traceability",
+          "detail": "Missing required FDS solid: 1qhEYy9wT1t8FaKPxk6tYW"
+        },
+        {
+          "severity": "P0",
+          "category": "traceability",
+          "detail": "Missing required FDS solid: 3TtVXhcg94194v4FT_xc4n"
+        }
+      ]
+    },
+    "diagonal_circular_duct": {
+      "parse_errors": [],
+      "unsupported": [],
+      "record_counts": {
+        "HEAD": 1,
+        "TIME": 1,
+        "MESH": 1,
+        "SURF": 4,
+        "HVAC": 3,
+        "TAIL": 1
+      },
+      "node_count": 2,
+      "duct_count": 1,
+      "connected_components": 1,
+      "endpoint_nodes_without_boundary": [
+        "NODE_1_A",
+        "NODE_1_B"
+      ],
+      "ducts": [
+        {
+          "TYPE_ID": [
+            "DUCT"
+          ],
+          "ID": [
+            "DUCT_1_Diagonal_circular_duct"
+          ],
+          "NODE_ID": [
+            "NODE_1_A",
+            "NODE_1_B"
+          ],
+          "AREA": [
+            0.4525
+          ],
+          "LENGTH": [
+            2.2627
+          ],
+          "ROUGHNESS": [
+            0.001
+          ]
+        }
+      ],
+      "expected_length_m": 3.0,
+      "expected_area_m2": 0.031415926535897934,
+      "emitted_area_ratio": 14.403522349816528
+    },
+    "parser_probes": {
+      "valid_ambient_endpoint": {
+        "errors": [],
+        "unsupported": [
+          "HVAC.AMBIENT"
+        ]
+      },
+      "invalid_missing_references": {
+        "errors": [],
+        "unsupported": []
+      },
+      "ids_shared_across_hvac_types": {
+        "errors": [
+          "Duplicate ID SUPPLY 1"
+        ],
+        "unsupported": []
+      }
+    },
+    "javascript_paths": {
+      "ducts": [
+        {
+          "name": "Duct A",
+          "role": "review"
+        },
+        {
+          "name": "Duct B",
+          "role": "review"
+        }
+      ],
+      "default_solids": 1,
+      "include_review_solids": 3,
+      "quick_export_hvac_count": 0,
+      "viewer_raw_hvac_count": 6,
+      "viewer_has_hvac_collection": false
+    },
+    "scenario_without_verified_base": {
+      "worker_exit_code": 0,
+      "result": {
+        "status": "COMPLETED",
+        "verdict": "PASS",
+        "mesh_status": "PASS",
+        "peak_hrr_mw": 4.5,
+        "evidence": {
+          "d_star_m": 1.749592259059967,
+          "cell_size_m": 0.2,
+          "d_star_over_dx": 8.747961295299834,
+          "peak_hrr_kw": 4500.0,
+          "ev_evaluations": [
+            {
+              "preset_id": "auto-nmc",
+              "position": [
+                5.0,
+                2.5,
+                1.0
+              ],
+              "ignition_delay_s": 0.0,
+              "dimensions": null,
+              "pack_kwh": null,
+              "peak_hrr_mw": null
+            }
+          ],
+          "scenario_id": "ev_scenario_4833a4a8cf6a",
+          "bundle_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "artifacts": {
+          "scenario_fds": {
+            "filename": "scenario.fds"
+          }
+        },
+        "scenario_id": "ev_scenario_4833a4a8cf6a",
+        "bundle_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "fds_file": "scenario.fds"
+      },
+      "fallback_room_created": true
+    },
+    "validation_dispatch": {
+      "engine_solver_calls": 1,
+      "runner_solver_calls": 0,
+      "engine_mesh_gate": null,
+      "runner_mesh_gate": {
+        "status": "FAIL",
+        "required": true,
+        "reason": "Mesh resolution too coarse for fire source 'VENT_BURNER_1': D*/dx = 0.87 < 4.0 (cell_size=2.000m, required cell_size <= 0.437m)",
+        "evidence": {
+          "d_star_m": 1.7495978577417592,
+          "cell_size_m": 2.0,
+          "d_star_over_dx": 0.8747989288708796,
+          "peak_hrr_kw": 4500.035999999999,
+          "burner_evaluations": [
+            {
+              "id": "VENT_BURNER_1",
+              "hrr_kw": 4500.035999999999,
+              "d_star_m": 1.7495978577417592,
+              "cell_size_m": 2.0,
+              "d_star_over_dx": 0.8747989288708796
+            }
+          ]
+        }
+      },
+      "runner_has_effective_geometry_gate": false
+    },
+    "opening_event_with_base_fill": {
+      "same_location_obstacles": [
+        {
+          "id": "OBST_1_Closed_door",
+          "ctrl_id": null
+        },
+        {
+          "id": "",
+          "ctrl_id": [
+            "CTRL_audit_door"
+          ]
+        }
+      ],
+      "fixed_base_fill_count": 1
+    },
+    "public_fixtures": [
+      {
+        "file": "AC20-FZK-Haus.ifc",
+        "products": 127,
+        "ifc_types": {
+          "IfcAnnotation": 14,
+          "IfcBeam": 4,
+          "IfcDoor": 5,
+          "IfcMember": 42,
+          "IfcRailing": 2,
+          "IfcSlab": 4,
+          "IfcStair": 1,
+          "IfcWallStandardCase": 13,
+          "IfcWindow": 11,
+          "IfcOpeningElement": 17,
+          "IfcVirtualElement": 3,
+          "IfcBuilding": 1,
+          "IfcBuildingStorey": 2,
+          "IfcSite": 1,
+          "IfcSpace": 7
+        },
+        "mep_systems": 0,
+        "mep_connections": 0
+      },
+      {
+        "file": "AC20-Institute-Var-2.ifc",
+        "products": 1190,
+        "ifc_types": {
+          "IfcAnnotation": 113,
+          "IfcColumn": 2,
+          "IfcDoor": 77,
+          "IfcRailing": 12,
+          "IfcSlab": 26,
+          "IfcStair": 4,
+          "IfcWallStandardCase": 121,
+          "IfcWindow": 206,
+          "IfcOpeningElement": 287,
+          "IfcFurnishingElement": 253,
+          "IfcBuilding": 1,
+          "IfcBuildingStorey": 5,
+          "IfcSite": 1,
+          "IfcSpace": 82
+        },
+        "mep_systems": 0,
+        "mep_connections": 0
+      },
+      {
+        "file": "IfcOpenShell-Duplex.ifc",
+        "products": 295,
+        "ifc_types": {
+          "IfcBeam": 8,
+          "IfcCovering": 13,
+          "IfcDoor": 14,
+          "IfcFooting": 7,
+          "IfcMember": 4,
+          "IfcRailing": 4,
+          "IfcRoof": 1,
+          "IfcSlab": 21,
+          "IfcStair": 2,
+          "IfcStairFlight": 2,
+          "IfcWall": 1,
+          "IfcWallStandardCase": 56,
+          "IfcWindow": 24,
+          "IfcOpeningElement": 50,
+          "IfcFurnishingElement": 61,
+          "IfcBuilding": 1,
+          "IfcBuildingStorey": 4,
+          "IfcSite": 1,
+          "IfcSpace": 21
+        },
+        "mep_systems": 0,
+        "mep_connections": 0
+      }
+    ]
+  }
+}

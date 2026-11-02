@@ -186,8 +186,9 @@ class AuditConversionUseCase:
                     report.element_statuses.get(e.entity_key) == "REFERENCE_PRESERVED"
                     for e in members
                 ),
-                "fds_obstacles": sum(e.fds_representation != "NONE" for e in members),
-                "operational_configured": 0,
+                "fds_obstacles": sum(e.fds_representation in ("OBST", "GEOM") for e in members),
+                "operational_verified": sum(report.element_statuses.get(e.entity_key) == "OPERATIONAL_MAPPED" for e in members) if report.gates["hvac"].status == GateStatus.PASS else 0,
+                "operational_configured": sum(e.operational_status == "CONFIGURED" for e in members),
                 "source_count": len(members),
                 "in_scope": sum(
                     e.scope_decision.value in ("IN_SCOPE", "BOUNDARY_RETAINED")
@@ -238,7 +239,7 @@ class AuditConversionUseCase:
                 e.simulation_role == role and e.scope_decision.value != "OUT_OF_SCOPE"
                 for e in model.elements
             )
-            for role in ("REFERENCE_GEOMETRY", "PASSIVE_OBSTACLE", "OPERATIONAL_MEP")
+            for role in ("REFERENCE_GEOMETRY", "PASSIVE_OBSTACLE", "OPERATIONAL_MEP", "HVAC")
         }
         report.coverage["boundary_pending"] = [
             e.entity_key
@@ -258,7 +259,7 @@ class AuditConversionUseCase:
             solver_s=report.metrics.get("solver_s", 0),
         )
         if report.requested_level == "simulation":
-            for name in ("physics", "scenario", "mesh_resolution", "operational_model"):
+            for name in ("physics", "scenario", "operational_model"):
                 report.gates[name] = GateResult(
                     status=GateStatus.NOT_RUN,
                     reason="Simulation verification is not implemented by this mapping stage",

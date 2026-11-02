@@ -34,7 +34,8 @@ class ConvertVerifiedUseCase:
         configuration["rebase_vector"] = model.source.rebase_vector
         prepared = perf_counter()
         cell_size = configuration.get("cell_size", 0.2)
-        mapping_plan = build_mapping_plan(model, cell_size=cell_size)
+        from ifc_to_fds.mep.network import build_hvac_network
+        mapping_plan = build_mapping_plan(model, cell_size=cell_size, hvac_network=build_hvac_network(model))
         fds, manifest = serialize_fds(
             model, cell_size=cell_size, mapping_plan=mapping_plan
         )

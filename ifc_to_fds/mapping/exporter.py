@@ -67,6 +67,28 @@ def format_source_comment(elem: CanonicalElement) -> str:
     )
 
 
+def surface_for_element(elem: CanonicalElement) -> str:
+    ifc_type = (elem.ifc_type or "").upper()
+    type_class = (getattr(elem, "type_class", None) or "").upper()
+    name = (elem.name or "").upper()
+    from ifc_to_fds.mep.classifier import MEP_TYPES
+    from ifc_to_fds.mapping.policy import MEP_PREFIXES
+
+    if ifc_type in ("IFCWINDOW", "IFCDOOR") or "GLASS" in ifc_type:
+        return "GLASS"
+    if (
+        ifc_type in MEP_TYPES
+        or type_class in MEP_TYPES
+        or ifc_type.startswith(MEP_PREFIXES)
+        or type_class.startswith(MEP_PREFIXES)
+        or "STEEL" in name
+        or "METAL" in name
+    ):
+        return "STEEL"
+    return "CONCRETE"
+
+
+
 def compute_mesh_grid(
     bounds: BoundingBox, cell_size: float = 0.2, max_total_cells: int = 50_000_000
 ) -> Tuple[List[int], List[float]]:
@@ -190,17 +212,19 @@ def serialize_mapping(model, cell_size=None, mapping_plan=None) -> Serialization
     """Render a validated plan without modifying the source model or plan."""
     from ifc_to_fds.domain.mapping import build_mapping_plan
     from .plan_validation import planned_model
+    from ifc_to_fds.mep.network import build_hvac_network
 
     if cell_size is not None and (not math.isfinite(cell_size) or cell_size <= 0):
         raise ValueError("cell_size must be finite and positive")
     if mapping_plan is None:
         mapping_plan = build_mapping_plan(
-            model, cell_size=0.2 if cell_size is None else cell_size
+            model, cell_size=0.2 if cell_size is None else cell_size,
+            hvac_network=build_hvac_network(model)
         )
     elif cell_size is not None and cell_size != mapping_plan.cell_size:
         raise ValueError("cell_size conflicts with MappingPlan")
     view = planned_model(model, mapping_plan)
-    text, manifest = _serialize_planned_model(view, mapping_plan.cell_size)
+    text, manifest = _serialize_planned_model(view, mapping_plan.cell_size, mapping_plan.hvac_network)
     return SerializationResult(
         text,
         manifest.model_copy(deep=True),
@@ -212,7 +236,7 @@ def serialize_mapping(model, cell_size=None, mapping_plan=None) -> Serialization
     )
 
 
-def _serialize_planned_model(model, cell_size):
+def _serialize_planned_model(model, cell_size, hvac_network):
     """Serializes CanonicalModel into valid FDS text and generates MappingManifest."""
     if not all(e.mapping_planned for e in model.elements):
         raise ValueError("Call plan_mapping before serialization")
@@ -306,7 +330,7 @@ def _serialize_planned_model(model, cell_size):
 
             lines.append(format_source_comment(elem))
             lines.append(
-                f"&OBST ID='{prim_id}', XB={format_xb((elem.representation_bounds or elem.bounding_box).to_xb())}, SURF_ID='CONCRETE' /"
+                f"&OBST ID='{prim_id}', XB={format_xb((elem.representation_bounds or elem.bounding_box).to_xb())}, SURF_ID='{surface_for_element(elem)}' /"
             )
 
         elif (
@@ -330,9 +354,16 @@ def _serialize_planned_model(model, cell_size):
             )
 
             lines.append(format_source_comment(elem))
-            lines.append(f"&GEOM ID='{prim_id}', SURF_ID='CONCRETE',")
+            lines.append(f"&GEOM ID='{prim_id}', SURF_ID='{surface_for_element(elem)}',")
             lines.append(f"      VERTS={verts_str},")
             lines.append(f"      FACES={faces_str} /")
+
+    from ifc_to_fds.mep.fds_records import render_network
+    lines.extend(render_network(hvac_network, model.elements))
+    assignments = hvac_network.assignments()
+    for elem in model.elements:
+        if elem.entity_key in assignments:
+            elem.fds_primitive_ids.extend(assignments[elem.entity_key])
 
     lines.append("")
     lines.append("&TAIL /")

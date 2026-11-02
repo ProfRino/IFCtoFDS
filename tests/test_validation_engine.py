@@ -312,6 +312,22 @@ def test_parser_whitelists_fire_namelists_and_surf_combustion_properties():
     assert not parsed.unsupported
 
 
+def test_parser_whitelists_hvac_namelists():
+    fds = """
+&HEAD CHID='hvac_test', TITLE='HVAC Duct Scenario' /
+&TIME T_END=100.0 /
+&MESH ID='M1', IJK=10,10,10, XB=0,2,0,2,0,2 /
+&HVAC TYPE_ID='NODE', ID='N1', DUCT_ID='D1', XYZ=0.5,1.0,1.5, AMBIENT=.TRUE. /
+&HVAC TYPE_ID='NODE', ID='N2', DUCT_ID='D1', XYZ=1.5,1.0,1.5, AMBIENT=.TRUE. /
+&HVAC TYPE_ID='DUCT', ID='D1', NODE_ID='N1','N2', AREA=0.1, LENGTH=1.0, ROUGHNESS=0.001 /
+&TAIL /
+"""
+    parsed = parse_fds(fds)
+    assert not parsed.errors
+    assert not parsed.unsupported
+
+
+
 def test_traceability_checker_skips_scenario_fire_primitives(box_model):
     import hashlib
     from ifc_to_fds.domain.validation.model import ValidationContext, GateStatus

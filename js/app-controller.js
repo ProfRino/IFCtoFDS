@@ -611,6 +611,7 @@
         bindToggle('show-obst', 'obsts');
         bindToggle('show-hole', 'holes');
         bindToggle('show-geom', 'geoms');
+        bindToggle('show-hvac', 'hvac');
         if (els.showStructure) {
             els.showStructure.addEventListener('change', function (event) {
                 viewer.setIfcCategoryVisible('structure', event.target.checked);
