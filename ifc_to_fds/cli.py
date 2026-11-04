@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import sys
+from typing import Any
 from .pipeline import convert, audit, save_artifacts
 from .core.inventory import extract_inventory
 from .mapping.manifest import MappingManifest
@@ -46,6 +47,7 @@ def main(argv=None):
     p.add_argument("--decisions", help="Explicit entity decisions JSON")
     p.add_argument("--intentional-deltas", help="Approved delta JSON")
     p.add_argument("--domain", nargs=6, type=float)
+    p.add_argument("--coordinate-frame", choices=["WORLD", "REBASED"], default=None, help="Coordinate frame for domain/bbox")
     p = commands.add_parser("audit")
     p.add_argument("input_ifc", nargs="+")
     p.add_argument("--fds", required=True)
@@ -216,7 +218,7 @@ def main(argv=None):
             elif default_zip.is_file():
                 package = restore_package(default_zip, default_json)
             if not args.config:
-                config = {**manifest.configuration, **config}
+                config = {**{k: v for k, v in manifest.configuration.items() if k != "audit"}, **config}
             _, _, report = audit(
                 args.input_ifc,
                 Path(args.fds).read_bytes().decode("utf-8"),
@@ -237,12 +239,17 @@ def main(argv=None):
             config["simulation_domain"] = dict(
                 zip(("xmin", "xmax", "ymin", "ymax", "zmin", "zmax"), args.domain)
             )
+            if getattr(args, "coordinate_frame", None):
+                config["simulation_domain_coordinate_frame"] = args.coordinate_frame
         if args.storey:
             config.setdefault("scope", {})["storeys"] = args.storey
         if args.bbox:
-            config.setdefault("scope", {})["bounding_box"] = dict(
+            bbox_dict: dict[str, Any] = dict(
                 zip(("xmin", "xmax", "ymin", "ymax", "zmin", "zmax"), args.bbox)
             )
+            if getattr(args, "coordinate_frame", None):
+                bbox_dict["coordinate_frame"] = args.coordinate_frame
+            config.setdefault("scope", {})["bounding_box"] = bbox_dict
         if args.common_coordinates:
             config.setdefault("sources", {})["common_coordinates"] = True
         if args.solver:

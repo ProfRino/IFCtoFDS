@@ -1118,12 +1118,17 @@
     }
 
     function setExportEnabled(enabled) {
-        state.exportEnabled = !!enabled;
+        state.exportEnabled = !!enabled && supportsQuickExport();
         refreshConversionActions();
     }
 
+    function supportsQuickExport() {
+        return !!(state.ifcModel && !state.ifcModel.backendPreview &&
+            state.ifcModel.elements && state.ifcModel.elements.length);
+    }
+
     function refreshConversionActions() {
-        els.convertIfc.disabled = state.exportBusy || !state.exportEnabled;
+        els.convertIfc.disabled = state.exportBusy || !state.exportEnabled || !supportsQuickExport();
         if (els.convertVerified) {
             els.convertVerified.disabled = state.exportBusy || (!state.exportEnabled && !ns.verified.hasFiles());
         }
@@ -1219,10 +1224,12 @@
     // ifc-adapter parse (placements, void carving, classifications). We do it on demand
     // the first time the user clicks Convert, and cache the result for repeated exports.
     function ensureFullModel() {
-        if (state.fullModel && !state.fullModel.elements.some(function (e) { return e.exportGeometryComplete === false; })) return Promise.resolve(state.fullModel);
         if (state.ifcModel && state.ifcModel.backendPreview) {
-            return Promise.resolve(state.ifcModel);
+            var previewError = new Error('This source contains backend preview metadata only. Use Verified Conversion to export its full geometry.');
+            previewError.name = 'PreviewOnlyModelError';
+            return Promise.reject(previewError);
         }
+        if (state.fullModel && !state.fullModel.elements.some(function (e) { return e.exportGeometryComplete === false; })) return Promise.resolve(state.fullModel);
         if (!state.ifcSourceText) {
             return Promise.reject(new Error('IFC source not in memory — please reopen the file.'));
         }
@@ -1549,7 +1556,14 @@
         var exported = (report.coverage || {}).fds_export;
         if (exported) {
             line('p', 'FDS written: ' + exported.entities + ' entities / ' + exported.primitives + ' primitives (' + exported.obst + ' OBST, ' + exported.geom + ' GEOM). Independently verified: ' + exported.verified_entities + '.');
-            if (exported.comparisons_skipped_for_source_errors) line('p', 'Source topology errors stopped the remaining solid comparisons. The FDS download is available as an unaccepted diagnostic artifact.');
+            if (exported.compared_entities !== undefined) {
+                line('p', 'Geometry comparisons: ' + exported.compared_entities + ' completed, ' + exported.attempted_entities + ' attempted, ' + exported.verified_entities + ' verified, ' + exported.deviated_entities + ' deviated, ' + exported.failed_comparison_entities + ' invalid comparison, ' + exported.inconclusive_comparison_entities + ' inconclusive, ' + exported.not_compared_entities + ' written entities not compared.');
+            }
+            var sourcePreflight = (report.metrics || {}).source_topology_preflight_rejected || [];
+            if (sourcePreflight.length || exported.source_invalid_entities || exported.comparisons_skipped_for_source_errors) {
+                var localEvidence = exported.comparison_mode === 'PARTIAL' ? 'Only independent local comparisons were collected.' : (exported.skipped_for_source_errors || 'Remaining') + ' local comparisons were skipped.';
+                line('p', 'Source topology preflight blocked dependent global checks. ' + localEvidence + ' The FDS download remains an unaccepted diagnostic artifact.');
+            }
         }
         var scope = (report.configuration || {}).scope || {};
         var storeys = (((report.coverage || {}).scope || {}).selected_storeys || []);
@@ -1679,7 +1693,7 @@
             if (!item) return;
             if (item.type === 'IFC') {
                 var raw = item.raw || {};
-                var sid = raw.id || raw.stepId || raw.STEP_ID;
+                var sid = item.stepId || raw.id || raw.stepId || raw.STEP_ID;
                 if (sid) stepIds.push(String(sid).replace(/^#/, ''));
                 return;
             }
@@ -1705,13 +1719,7 @@
         if (schemaEl) schemaEl.textContent = (model && model.schema) || 'IFC';
 
         var b = model && (model.convertibleBounds || model.bounds);
-        if (b) {
-            ['xmin', 'xmax', 'ymin', 'ymax', 'zmin', 'zmax'].forEach(function (axis) {
-                var domainInput = document.getElementById('verified-domain-' + axis);
-                if (domainInput && b[axis] !== undefined) {
-                    domainInput.value = Number(b[axis]).toFixed(2);
-                }
-            });
+        if (b && ns.verified.suggestDomainFromSource(file, b)) {
             updateDomainEstimates();
         }
     }

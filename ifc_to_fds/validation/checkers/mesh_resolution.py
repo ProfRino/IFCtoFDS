@@ -246,8 +246,7 @@ class MeshResolutionChecker:
 
     def check(self, context: ValidationContext, parsed: Any = None) -> CheckerOutcome:
         parsed = parsed if parsed is not None else context.parsed
-        model = context.model
-        if parsed is None or model is None:
+        if parsed is None:
             return CheckerOutcome(
                 gate_name=self.name,
                 result=GateResult(

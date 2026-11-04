@@ -140,8 +140,9 @@ def test_duplex_geometry_evaluation_rejects_unverified_architectural_sample():
     approximately 211-212 verification findings:
     - Open 2D covering surfaces (e.g. IfcCovering with zero thickness and inconsistent edges).
     - Non-manifold railings, stairs, and furnishings (open edges, degenerate faces, zero volume).
-    - Envelope compartmentation breach: 1.0 m^3 unintended envelope leak volume
-      (0.328% of envelope) causing isolated free-space cavities to merge (9 source vs 7 FDS cavities).
+    - Envelope compartmentation breach after audited winding normalization: 2.54 m³
+      and 9 source versus 8 FDS cavities. The raw control case omits 14 solids
+      and has a different envelope. See docs/audit/remediation-2026-11-04.
 
     The verified IFC-to-FDS pipeline honestly rejects this model (mapping_status == "REJECTED")
     without crashing or fabricating geometry via silent bounding box substitution.
@@ -173,12 +174,15 @@ def test_duplex_geometry_evaluation_rejects_unverified_architectural_sample():
     railing_findings = [f for f in findings if "IfcRailing" in f.get("detail", "")]
     assert len(railing_findings) > 0, "Expected non-manifold railing findings"
 
-    # Air path validation gate detects the 1.0 m^3 envelope leak and cavity collapse
+    # Winding normalization preserves the original triangles and allows
+    # previously withheld ceilings and wall STEP 98 into the comparison.
     gates = report.get("gates", {})
     assert gates["geometry"]["status"] == "FAIL"
     assert gates["air_path"]["status"] == "FAIL"
     leak_vol = gates["air_path"]["evidence"]["leak_volume_m3"]
-    assert round(leak_vol, 1) == 1.0, f"Expected ~1.0 m^3 leak volume, got {leak_vol}"
+    assert round(leak_vol, 2) == 2.54, f"Expected ~2.54 m^3 leak volume, got {leak_vol}"
+    assert gates["air_path"]["evidence"]["source_cavities"] == 9
+    assert gates["air_path"]["evidence"]["fds_cavities"] == 8
 
 
 def test_verified_golden_models_achieve_verified_status(tmp_path):

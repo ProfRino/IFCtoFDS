@@ -41,6 +41,7 @@ jobs:
       - run: node scripts/test-verified-regressions.js
       - run: node scripts/test-geom-opening-regression.js
       - run: node scripts/test-background-export-worker.js
+      - run: node scripts/test-conversion-input-contracts.js
       - run: node scripts/test-large-opening.js
       - run: node scripts/test-workbench-stabilization.js
       - run: node scripts/test-ui-recovery.js

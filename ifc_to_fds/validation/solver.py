@@ -5,7 +5,6 @@ import json
 import os
 from pathlib import Path
 import re
-import shutil
 import subprocess
 import uuid
 import platform
@@ -13,6 +12,7 @@ import psutil
 from ifc_to_fds.diagnostics import operation
 from .acceptance import GateResult, GateStatus
 from .effective import effective_obstructions
+from .solver_discovery import resolve_solver_executable
 
 
 def stop_tree(process):
@@ -30,17 +30,18 @@ def stop_tree(process):
 
 @operation("SOLVER")
 def solver_gates(fds_text, config):
-    executable = config.solver_executable or shutil.which("fds")
+    resolution = resolve_solver_executable(config.solver_executable, config.solver_version)
     effective = GateResult(
         status=GateStatus.INCONCLUSIVE,
         reason="Effective geometry has not been proved from solver output",
     )
-    if not executable:
+    if resolution.executable is None:
         return GateResult(
             status=GateStatus.INCONCLUSIVE,
-            reason="FDS executable not installed/configured",
+            reason=resolution.reason,
+            evidence={"resolution": resolution.evidence()},
         ), effective
-    path = Path(executable).resolve()
+    path = resolution.executable
     evidence = dict(
         required_version=config.solver_version,
         adapter_version="obst-single-mesh-0.5.0",
@@ -49,12 +50,15 @@ def solver_gates(fds_text, config):
             config.model_dump_json().encode()
         ).hexdigest(),
         fds_sha256=hashlib.sha256(fds_text.encode()).hexdigest(),
+        resolution=resolution.evidence(),
     )
     directory = None
     try:
         evidence.update(
             executable=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest()
         )
+        if resolution.source == "project-pinned" and evidence["sha256"] != resolution.sha256:
+            raise OSError("Project-pinned FDS binary changed after discovery; execution refused")
         directory = (
             Path(config.solver_evidence_directory or ".cache/solver-evidence").resolve()
             / uuid.uuid4().hex

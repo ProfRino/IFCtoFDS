@@ -116,7 +116,8 @@ def public_result(result, directory=None):
         timings=result["timings"],
         gates={
             k: dict(
-                status=v["status"], required=v["required"], reason=v["reason"][:1000]
+                status=v["status"], required=v["required"], reason=v["reason"][:1000],
+                reason_code=v.get("reason_code", ""),
             )
             for k, v in report["gates"].items()
         },

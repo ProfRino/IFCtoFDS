@@ -14,6 +14,7 @@ class CheckerOutcome:
     metrics: Dict[str, Any] = field(default_factory=dict)
     additional_gates: Dict[str, GateResult] = field(default_factory=dict)
     element_statuses: Dict[str, str] = field(default_factory=dict)
+    coverage: Dict[str, Any] = field(default_factory=dict)
 
 
 @runtime_checkable

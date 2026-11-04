@@ -7,28 +7,16 @@ import json
 import os
 from pathlib import Path
 import shutil
-from typing import Optional, List
+from typing import Optional
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request, Query, Body
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, ConfigDict
 from .jobs import JobManager
 from .results import ARTIFACTS
 from .http_limits import BodyLimitMiddleware
 from .mapping.scope import SpatialScope
 from .validation.acceptance import AuditConfig
-from .fire.scenario_emitter import DeviceSelection
-
-
-class ScenarioJobRequest(BaseModel):
-    model_config = ConfigDict(extra="allow")
-    scenario_id: Optional[str] = None
-    bundle_sha256: Optional[str] = None
-    ev_library_version: Optional[str] = None
-    total_peak_hrr_mw: Optional[float] = None
-    peak_hrr_kw: Optional[float] = None
-    devices: Optional[List[DeviceSelection]] = None
-    scenario_data: Optional[dict] = None
+from .fire.scenario_request import ScenarioRequest
 
 manager = JobManager(
     max_waiting=int(os.getenv("IFCFDS_MAX_WAITING", "2")),
@@ -283,7 +271,7 @@ async def submit_preview(file: UploadFile = File(...)):
 
 
 @app.post("/api/scenario-jobs", status_code=202)
-async def submit_scenario_job(payload: ScenarioJobRequest):
+async def submit_scenario_job(payload: ScenarioRequest):
     if not manager.can_accept():
         raise HTTPException(429, "Job queue is full; retry after existing jobs finish")
     import uuid
@@ -299,6 +287,9 @@ async def submit_scenario_job(payload: ScenarioJobRequest):
     except OverflowError as exc:
         shutil.rmtree(directory, ignore_errors=True)
         raise HTTPException(429, str(exc))
+    except Exception:
+        shutil.rmtree(directory, ignore_errors=True)
+        raise
 
 
 @app.get("/api/jobs/{jid}")

@@ -1,0 +1,205 @@
+{
+  "python": "3.10.21 (main, Aug 25 2026, 13:58:42) [MSC v.1944 64 bit (AMD64)]",
+  "platform": "Windows-10-10.0.26300-SP0",
+  "date": "2026-11-04",
+  "probes": {
+    "energy_and_hf": {
+      "emitted": true,
+      "comments": [
+        "! Passive tracer for battery toxic offgas (effective Y_HF=0.0300)",
+        "&SPEC ID='HYDROGEN FLUORIDE' /",
+        "! Energy balance: total fire curve energy = 9015.5 MJ, nominal battery pack = 144.0 MJ"
+      ],
+      "bundle_fields": [
+        "scenario_id",
+        "bundle_sha256",
+        "ev_library_version",
+        "ev_library_digest",
+        "fds_fragment",
+        "total_peak_hrr_mw",
+        "ev_count",
+        "ev_selections",
+        "devices",
+        "opening_events"
+      ],
+      "hf_references": [
+        "! Passive tracer for battery toxic offgas (effective Y_HF=0.0300)",
+        "&SPEC ID='HYDROGEN FLUORIDE' /"
+      ]
+    },
+    "opening_grid": [
+      {
+        "xb": [
+          0,
+          0.9,
+          0,
+          0.3,
+          0,
+          2.1
+        ],
+        "result": {
+          "min_width_m": 0.3,
+          "cell_size_m": 0.2,
+          "risk_sealed_by_grid": true,
+          "snapped_shut_single_cell": false
+        }
+      },
+      {
+        "xb": [
+          0,
+          1.2,
+          0,
+          0.2,
+          0,
+          2.1
+        ],
+        "result": {
+          "min_width_m": 0.2,
+          "cell_size_m": 0.2,
+          "risk_sealed_by_grid": true,
+          "snapped_shut_single_cell": true
+        }
+      },
+      {
+        "xb": [
+          0,
+          1.8,
+          0,
+          0.25,
+          0,
+          2.1
+        ],
+        "result": {
+          "min_width_m": 0.25,
+          "cell_size_m": 0.2,
+          "risk_sealed_by_grid": true,
+          "snapped_shut_single_cell": false
+        }
+      },
+      {
+        "xb": [
+          0,
+          1.5,
+          0,
+          0.35,
+          0,
+          1.2
+        ],
+        "result": {
+          "min_width_m": 0.35,
+          "cell_size_m": 0.2,
+          "risk_sealed_by_grid": true,
+          "snapped_shut_single_cell": false
+        }
+      },
+      {
+        "xb": [
+          0,
+          0.15,
+          0,
+          0.15,
+          0,
+          0.15
+        ],
+        "result": {
+          "min_width_m": 0.15,
+          "cell_size_m": 0.2,
+          "risk_sealed_by_grid": true,
+          "snapped_shut_single_cell": true
+        }
+      }
+    ],
+    "missing_opening": {
+      "emitted": true,
+      "lines": "\n&DEVC ID='DEVC_missing_TIME', QUANTITY='TIME', SETPOINT=1.00 /\n&CTRL ID='CTRL_missing', FUNCTION_TYPE='ANY', INPUT_ID='DEVC_missing_TIME' /\n! Note: Opening 'missing' bounds not present in mapping plan\n"
+    },
+    "time_exponent": {
+      "input": "&TIME T_END=1.8E3 /",
+      "read_value": 1.8,
+      "rewritten": "&TIME T_END=1936.2E3 /"
+    },
+    "nonplanar_vent": {
+      "blocked_at_schema": true,
+      "error": "1 validation error for EndpointSpec\n  Value error, HVAC vent must be a positive-area axis-aligned rectangle [type=value_error, input_value={'kind': 'VENT', 'vent_xb': (0, 1, 0, 1, 0, 1)}, input_type=dict]\n    For further information visit https://errors.pydantic.dev/2.14/v/value_error"
+    },
+    "door_solver": {
+      "OPEN": {
+        "emitted_control": "\n&DEVC ID='DEVC_DOOR_TIME', QUANTITY='TIME', SETPOINT=1.00 /\n&CTRL ID='CTRL_DOOR', FUNCTION_TYPE='ANY', INPUT_ID='DEVC_DOOR_TIME' /\n&OBST XB=0.4,0.6,0.2,0.8,0.2,0.8, SURF_ID='INERT', CTRL_ID='CTRL_DOOR' /\n",
+        "input_sha256": "b4617c8120ef9c01705b54e43bc70c88c32679737e1703f8359407ac0c2cde8b",
+        "exit_code": 0,
+        "solver_sha256": "dfaf04f1d46dbad77969b1cdd17baaa02a7aa6d63f46e96e93b9d9e635452b55",
+        "solver_errors": [
+          "ERROR(885): DEVC DEVC_DOOR_TIME must have coordinates, even if it is not a point quantity. (CHID: door_open)",
+          "ERROR: FDS was improperly set-up - FDS stopped (CHID: door_open)"
+        ],
+        "completed": false,
+        "variant": "OPEN"
+      },
+      "CLOSED": {
+        "emitted_control": "\n&DEVC ID='DEVC_DOOR_TIME', QUANTITY='TIME', SETPOINT=1.00, INITIAL_STATE=.TRUE. /\n&CTRL ID='CTRL_DOOR', FUNCTION_TYPE='ANY', INPUT_ID='DEVC_DOOR_TIME' /\n&OBST XB=0.4,0.6,0.2,0.8,0.2,0.8, SURF_ID='INERT', CTRL_ID='CTRL_DOOR' /\n",
+        "input_sha256": "73287d9227c58ed4bd8b57adb86d3d3215a05a1cd0b8940a47496e4cd197a250",
+        "exit_code": 0,
+        "solver_sha256": "dfaf04f1d46dbad77969b1cdd17baaa02a7aa6d63f46e96e93b9d9e635452b55",
+        "solver_errors": [
+          "ERROR(885): DEVC DEVC_DOOR_TIME must have coordinates, even if it is not a point quantity. (CHID: door_closed)",
+          "ERROR: FDS was improperly set-up - FDS stopped (CHID: door_closed)"
+        ],
+        "completed": false,
+        "variant": "CLOSED"
+      },
+      "OPEN_WITH_XYZ": {
+        "emitted_control": "\n&DEVC ID='DEVC_DOOR_TIME', XYZ=0.1,0.1,0.1, QUANTITY='TIME', SETPOINT=1.00 /\n&CTRL ID='CTRL_DOOR', FUNCTION_TYPE='ANY', INPUT_ID='DEVC_DOOR_TIME' /\n&OBST XB=0.4,0.6,0.2,0.8,0.2,0.8, SURF_ID='INERT', CTRL_ID='CTRL_DOOR' /\n",
+        "input_sha256": "9e132d1029cddaca4b782bc9b6a928448cdb1218e3bb6b56decc76e8458c90f9",
+        "exit_code": 0,
+        "solver_sha256": "dfaf04f1d46dbad77969b1cdd17baaa02a7aa6d63f46e96e93b9d9e635452b55",
+        "solver_errors": [],
+        "completed": true,
+        "variant": "OPEN_WITH_XYZ",
+        "door_open_ctrl.csv": "s,status\nTime,CTRL_DOOR\n 0.0000000E+000,-1\n 1.5966497E-001,-1\n 3.1932995E-001,-1\n 4.7899494E-001,-1\n 6.3865989E-001,-1\n 7.9832488E-001,-1\n 9.5798987E-001,-1\n 1.1176548E+000, 1\n 1.2773198E+000, 1\n 1.4369848E+000, 1\n 1.5966498E+000, 1\n 1.7563148E+000, 1\n 1.9159797E+000, 1\n 2.0000000E+000, 1\n",
+        "door_open_devc_ctrl_log.csv": "Time (s),Type,ID,State,Value,Units\n 1.11765E+00,DEVC,DEVC_DOOR_TIME,T, 1.11765E+00,s\n 1.11765E+00,CTRL,CTRL_DOOR,T\n",
+        "obstruction_events": [
+          [
+            "HIDE_OBST     1",
+            "     1      0.000000",
+            "DEVICE_ACT     DEVC_DOOR_TIME"
+          ],
+          [
+            "SHOW_OBST     1",
+            "     1      1.277320"
+          ]
+        ]
+      },
+      "CLOSED_WITH_XYZ": {
+        "emitted_control": "\n&DEVC ID='DEVC_DOOR_TIME', XYZ=0.1,0.1,0.1, QUANTITY='TIME', SETPOINT=1.00, INITIAL_STATE=.TRUE. /\n&CTRL ID='CTRL_DOOR', FUNCTION_TYPE='ANY', INPUT_ID='DEVC_DOOR_TIME' /\n&OBST XB=0.4,0.6,0.2,0.8,0.2,0.8, SURF_ID='INERT', CTRL_ID='CTRL_DOOR' /\n",
+        "input_sha256": "aba45340ad59ef5a83e94a67b42a234a348df2938dce3f2d546bb773e265152d",
+        "exit_code": 0,
+        "solver_sha256": "dfaf04f1d46dbad77969b1cdd17baaa02a7aa6d63f46e96e93b9d9e635452b55",
+        "solver_errors": [],
+        "completed": true,
+        "variant": "CLOSED_WITH_XYZ",
+        "door_closed_ctrl.csv": "s,status\nTime,CTRL_DOOR\n 0.0000000E+000, 1\n 1.5966497E-001, 1\n 3.1932995E-001, 1\n 4.7899494E-001, 1\n 6.3865989E-001, 1\n 7.9832488E-001, 1\n 9.5798987E-001, 1\n 1.1176548E+000, 1\n 1.2773198E+000, 1\n 1.4369848E+000, 1\n 1.5966498E+000, 1\n 1.7563148E+000, 1\n 1.9159797E+000, 1\n 2.0000000E+000, 1\n",
+        "door_closed_devc_ctrl_log.csv": "Time (s),Type,ID,State,Value,Units\n 0.00000E+00,CTRL,CTRL_DOOR,T\n 1.11765E+00,DEVC,DEVC_DOOR_TIME,F, 1.11765E+00,s\n",
+        "obstruction_events": [
+          [
+            "HIDE_OBST     1",
+            "     1      0.000000",
+            "SHOW_OBST     1"
+          ],
+          [
+            "SHOW_OBST     1",
+            "     1      0.159665",
+            "DEVICE_ACT     DEVC_DOOR_TIME"
+          ]
+        ]
+      }
+    }
+  },
+  "source_sha256": {
+    "ifc_to_fds/fire/scenario_emitter.py": "0cc52ee870763a2154b3e256e960221c02092ccee564fed721dc196e0027de61",
+    "ifc_to_fds/validation/effective.py": "5ddcbd0b0e292bdb261cd8329840cfdb158349539ee9f7ca2489ff1ca8a8d16a",
+    "ifc_to_fds/adapters/jobs/runner.py": "dafcff1f738f81bdeb78620e30c2bbf9ee61dfb50b35961eac5011f244f25712",
+    "ifc_to_fds/validation/runner.py": "6fa6351cb85ff6025a9597366c34d2d2348da3b871a4b10edd743dd1b5c48f65",
+    "ifc_to_fds/validation/engine.py": "235b29a2c291792232c1a0a10acec4d17273c7ccfd8a672513c7a03eaed3f6e5",
+    "docs/audit/Review-Toan-Dien-IFCtoFDS-.docx": "77baceec21f1bb15f510e515881ad660daed857b34e2d514fc4bbd3f73b92920"
+  }
+}

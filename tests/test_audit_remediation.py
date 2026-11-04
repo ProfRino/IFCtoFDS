@@ -12,6 +12,8 @@ Validates:
 - Phase G (B11): Structural completeness checker covers footings, piles, stairs, plates, members.
 """
 
+import pytest
+
 from ifc_to_fds.cli import main as cli_main
 from ifc_to_fds.core.canonical import (
     BoundingBox,
@@ -100,6 +102,10 @@ def test_origin_rebase_synchronizes_spatial_scope_and_domain(box_model, monkeypa
         "scope": {"bounding_box": world_bbox},
         "simulation_domain": world_domain,
     }
+    with pytest.raises(ValueError, match="scope.coordinate_frame is required"):
+        prepare_model(["dummy.ifc"], config)
+    config["scope"]["coordinate_frame"] = "WORLD"
+    config["simulation_domain_coordinate_frame"] = "WORLD"
 
     prepared = prepare_model(["dummy.ifc"], config)
 
@@ -270,18 +276,24 @@ def test_partition_simulation_domain_multi_mesh():
 
 
 def test_check_opening_grid_alignment_heuristic():
-    """H-10: check_opening_grid_alignment warns when opening width < 2*dx."""
+    """Through thickness cannot trigger a low resolution warning."""
     from ifc_to_fds.validation.effective import check_opening_grid_alignment
+    from ifc_to_fds.validation.parser import parse_fds
+    from ifc_to_fds.geometry.mesh import box_mesh
 
-    # Narrow slit opening: width 0.15m on dx=0.1m grid -> min_width < 2*dx (0.2m)
-    narrow_box = BoundingBox(xmin=1.0, xmax=1.15, ymin=0.0, ymax=0.2, zmin=0.0, zmax=2.0)
-    res_narrow = check_opening_grid_alignment(narrow_box, cell_size=0.1)
+    mesh = parse_fds("&HEAD CHID='grid' /\n&TIME T_END=0 /\n"
+                     "&MESH ID='real', IJK=30,5,15, XB=.05,3.05,0,1,0,3 /\n&TAIL /")
+    host = BoundingBox(xmin=0.5, xmax=3.0, ymin=0.2, ymax=0.25, zmin=0.0, zmax=3.0)
+    narrow_box = BoundingBox(xmin=1.0, xmax=1.15, ymin=0.2, ymax=0.25, zmin=0.0, zmax=2.0)
+    res_narrow = check_opening_grid_alignment(box_mesh(narrow_box), host, mesh)
     assert res_narrow["risk_sealed_by_grid"] is True
 
-    # Standard wide opening: width 1.2m on dx=0.1m grid
-    wide_box = BoundingBox(xmin=1.0, xmax=2.2, ymin=0.0, ymax=0.2, zmin=0.0, zmax=2.0)
-    res_wide = check_opening_grid_alignment(wide_box, cell_size=0.1)
+    wide_box = narrow_box.model_copy(update={"xmax": 2.2})
+    res_wide = check_opening_grid_alignment(box_mesh(wide_box), host, mesh)
     assert res_wide["risk_sealed_by_grid"] is False
+    assert res_wide["normal_axis"] == "Y"
+    assert res_wide["mesh_id"] == "real"
+    assert res_wide["mesh_origin_m"] == [0.05, 0, 0]
 
 
 def test_public_result_filters_missing_artifacts_and_untruncates_findings(tmp_path):
@@ -385,17 +397,15 @@ def test_compute_mesh_grid_cell_limit_raises():
 
 
 
-def test_check_opening_grid_alignment_with_numpy_bounds():
-    """Verify check_opening_grid_alignment correctly reads numpy array bounds from trimesh."""
-    import numpy as np
+def test_check_opening_grid_alignment_without_unique_axis_is_inconclusive():
     from ifc_to_fds.validation.effective import check_opening_grid_alignment
+    from ifc_to_fds.validation.parser import ParsedFDS
+    from ifc_to_fds.geometry.mesh import box_mesh
 
-    # numpy.ndarray bounds of shape (2, 3)
-    np_bounds = np.array([[1.0, 0.0, 0.0], [2.2, 0.2, 2.0]])
-    res = check_opening_grid_alignment(np_bounds, cell_size=0.1)
-    # width_x = 1.2, width_y = 0.2, min_width = 0.2 -> 2*dx = 0.2
-    assert res["min_width_m"] == 0.2
-    assert res["cell_size_m"] == 0.1
+    host = BoundingBox(xmin=0, xmax=1, ymin=0, ymax=1, zmin=0, zmax=1)
+    result = check_opening_grid_alignment(box_mesh(host), host, ParsedFDS())
+    assert result["status"] == "INCONCLUSIVE"
+    assert "risk_sealed_by_grid" not in result
 
 
 def test_cancel_completed_job_preserves_source_files(tmp_path):
@@ -431,8 +441,8 @@ def test_cancel_completed_job_preserves_source_files(tmp_path):
     assert req_json.exists(), "Request JSON was unexpectedly unlinked on completed job"
 
 
-def test_door_closed_event_emits_initial_state_true_devc():
-    """Verify door CLOSED event emits INITIAL_STATE=.TRUE. on &DEVC and ANY on &CTRL."""
+def test_door_closed_event_starts_with_the_fill_absent():
+    """A timed closing starts with its directly controlled obstruction absent."""
     from ifc_to_fds.domain.mapping import MappingPlan, MappingDecision
     from ifc_to_fds.domain.mapping.enums import MappingStrategy
     from ifc_to_fds.fire.scenario_emitter import emit_fire_scenario, EVSelection
@@ -454,9 +464,9 @@ def test_door_closed_event_emits_initial_state_true_devc():
         verification_status="MAPPING_VERIFIED",
     )
     frag = bundle.fds_fragment
-    assert "QUANTITY='TIME', SETPOINT=60.00, INITIAL_STATE=.TRUE." in frag
-    assert "&CTRL ID='CTRL_door_1', FUNCTION_TYPE='ANY', INPUT_ID='DEVC_door_1_TIME'" in frag
-    assert "&OBST XB=1,2,0,0.2,0,2.1, SURF_ID='INERT', CTRL_ID='CTRL_door_1'" in frag
+    assert "QUANTITY='TIME', SETPOINT=60.0" in frag
+    assert "INITIAL_STATE=.FALSE." in frag
+    assert "CTRL_ID='CTRL_door_1'" in frag
 
 
 def test_air_path_negative_volume_is_inconclusive(monkeypatch, box_model):
@@ -616,3 +626,362 @@ def test_unconfigured_hvac_role_cannot_fabricate_a_network(box_model):
     elem.simulation_role = "HVAC"
     with pytest.raises(ValueError, match="HVAC requires"):
         plan_mapping(box_model)
+
+
+def test_compose_scenario_infers_domain_when_manifest_domain_is_none(box_model):
+    """Finding 1: compose_scenario infers simulation domain from MESH records when manifest domain is None."""
+    from ifc_to_fds.mapping.exporter import serialize_fds
+    from ifc_to_fds.fire.scenario_emitter import emit_fire_scenario, EVSelection
+    from ifc_to_fds.fire.scenario_composer import compose_scenario
+    from ifc_to_fds.domain.mapping import MappingPlan
+
+    box_model.simulation_domain = None
+    base_text, manifest = serialize_fds(box_model)
+    manifest.simulation_domain = None
+    assert manifest.simulation_domain is None
+
+    plan = MappingPlan(decisions=[], cell_size=0.2)
+    ev = EVSelection(preset_id="e-bike-lfp", position=(1.0, 0.5, 1.5), dimensions=(0.4, 0.4, 0.4))
+    bundle = emit_fire_scenario(plan, "a" * 64, [ev])
+    composed = compose_scenario(base_text, bundle, manifest)
+    assert "&HEAD" in composed
+    assert "&TAIL" in composed
+
+
+def test_compose_scenario_permits_door_timer_on_mesh_boundary(box_model):
+    """Finding 2: timer opening coordinate check permits timer lying on mesh boundary."""
+    from ifc_to_fds.mapping.exporter import serialize_fds
+    from ifc_to_fds.fire.scenario_emitter import emit_fire_scenario, EVSelection
+    from ifc_to_fds.fire.scenario_composer import compose_scenario
+    from ifc_to_fds.domain.mapping import build_mapping_plan
+    from ifc_to_fds.domain.bim import BoundingBox
+
+    door = box_model.elements[0]
+    door.ifc_type = "IfcDoor"
+    box_model.simulation_domain = BoundingBox(xmin=0, xmax=2, ymin=0, ymax=1, zmin=0, zmax=3)
+    base_text, manifest = serialize_fds(box_model)
+    plan = build_mapping_plan(box_model)
+    ev = EVSelection(preset_id="e-bike-lfp", position=(1.0, 0.5, 1.5), dimensions=(0.4, 0.4, 0.4))
+    bundle = emit_fire_scenario(
+        plan, "a" * 64,
+        [ev],
+        opening_states=[dict(entity_key=door.entity_key, state="OPEN", event_time_s=10.0)],
+    )
+    # Door timer XYZ at boundary [1.0, 0.5, 1.5] lies safely inside/on boundary
+    composed = compose_scenario(base_text, bundle, manifest)
+    assert "CTRL_ID=" in composed
+
+
+def test_configure_scenario_time_preserves_dt_and_t_begin():
+    """Finding 3: configure_scenario_time preserves DT, T_BEGIN and other TIME parameters."""
+    from ifc_to_fds.fire.scenario_composer import configure_scenario_time
+    from ifc_to_fds.validation.parser import parse_fds
+
+    text = (
+        "&HEAD CHID='time_test' /\n"
+        "&TIME T_BEGIN=5.0, T_END=100.0, DT=0.05, TIME_SHRINK_FACTOR=1.0 /\n"
+        "&MESH IJK=10,10,10, XB=0,1,0,1,0,1 /\n"
+        "&TAIL /\n"
+    )
+    updated, end = configure_scenario_time(text, [], requested_end_s=200.0)
+    assert end == 200.0
+    parsed = parse_fds(updated)
+    assert not parsed.errors
+    assert not parsed.unsupported
+    time_rec = next(r for r in parsed.records if r.kind == "TIME")
+    assert time_rec.values["T_END"] == [200.0]
+    assert time_rec.values["T_BEGIN"] == [5.0]
+    assert time_rec.values["DT"] == [0.05]
+    assert time_rec.values["TIME_SHRINK_FACTOR"] == [1.0]
+
+
+def test_runner_verdict_fails_when_physics_fails(tmp_path):
+    """Finding 4: WorkerRunner reports verdict='FAIL' when physics['status'] == 'FAIL'."""
+    from ifc_to_fds.adapters.jobs.runner import WorkerRunner
+    from ifc_to_fds.fire.scenario_emitter import ScenarioBundle, EVSelection
+    from ifc_to_fds.domain.mapping import MappingPlan, MappingManifest
+    from unittest.mock import patch, MagicMock
+    from ifc_to_fds.validation.acceptance import GateResult, GateStatus
+    import json
+
+    bundle = ScenarioBundle(
+        scenario_id="scen_fail",
+        bundle_sha256="a" * 64,
+        ev_library_version="1.0.0",
+        fds_fragment="! empty",
+        total_peak_hrr_mw=10.0,
+        ev_count=1,
+        ev_selections=[EVSelection(preset_id="auto-nmc", position=(1, 1, 1))],
+    )
+    req = {
+        "mode": "scenario",
+        "configuration": {
+            "bundle_sha256": "a" * 64,
+            "ev_selections": [{"preset_id": "auto-nmc", "position": [1, 1, 1]}],
+        },
+    }
+    (tmp_path / "request.json").write_text(json.dumps(req), encoding="utf-8")
+    base_text = "&HEAD CHID='b' /\n&TIME T_END=10.0 /\n&MESH IJK=1,1,1, XB=0,1,0,1,0,1 /\n&TAIL /\n"
+    plan = MappingPlan(decisions=[], cell_size=0.2)
+    manifest = MappingManifest(
+        bundle_sha256="a" * 64,
+        source_filename="test.ifc",
+        source_sha256="0" * 64,
+        total_elements_accounted=1,
+        total_primitives_emitted=1,
+    )
+    mock_mesh_outcome = MagicMock()
+    mock_mesh_outcome.result = GateResult(status=GateStatus.PASS)
+    with patch("ifc_to_fds.application.services.scenario_base.load_verified_base", return_value=(base_text, plan, manifest)), \
+         patch("ifc_to_fds.fire.scenario_emitter.emit_fire_scenario", return_value=bundle), \
+         patch("ifc_to_fds.fire.scenario_composer.compose_scenario", return_value=base_text), \
+         patch("ifc_to_fds.fire.scenario_composer.configure_scenario_time", return_value=(base_text, 10.0)), \
+         patch("ifc_to_fds.fire.physics_assessment.assess_scenario_physics", return_value={"status": "FAIL", "energy_budget_status": "FAIL"}), \
+         patch("ifc_to_fds.validation.checkers.mesh_resolution.MeshResolutionChecker.check", return_value=mock_mesh_outcome):
+        runner = WorkerRunner()
+        res_code = runner.run(tmp_path)
+        assert res_code == 0
+        result = json.loads((tmp_path / "result.json").read_text(encoding="utf-8"))
+        assert result["verdict"] == "FAIL"
+        assert result["physics_status"] == "FAIL"
+        assert result["mesh_status"] == "PASS"
+
+
+def test_nominal_energy_within_t_end_clamped_to_simulation_duration():
+    """Finding 5: nominal_energy_within_t_end_mj integrates only up to T_END."""
+    from ifc_to_fds.fire.physics_assessment import assess_scenario_physics
+    from ifc_to_fds.fire.scenario_emitter import ScenarioBundle
+
+    # Vehicle with HRRPUA=100 kW/m2, vent area=2x1=2 m2 -> peak=200 kW
+    # Ramp: T=0 F=0; T=1000 F=1.0; T=2000 F=0.
+    # Total nominal energy = 200 kW * (1000*0.5 + 1000*0.5) / 1000 = 200 MJ
+    # T_END = 500 s -> at T=500, F=0.5 -> integral within 500s = 500 * (0 + 0.5)/2 = 125s -> energy = 200 * 125 / 1000 = 25 MJ
+    text = (
+        "&HEAD CHID='ramp_clamp' /\n"
+        "&TIME T_END=500.0 /\n"
+        "&SURF ID='BURNER_EV_1', HRRPUA=100.0, RAMP_Q='RAMP_1' /\n"
+        "&VENT ID='VENT_BURNER_1', XB=0,2,0,1,0,0 /\n"
+        "&RAMP ID='RAMP_1', T=0.0, F=0.0 /\n"
+        "&RAMP ID='RAMP_1', T=1000.0, F=1.0 /\n"
+        "&RAMP ID='RAMP_1', T=2000.0, F=0.0 /\n"
+        "&TAIL /\n"
+    )
+    bundle = ScenarioBundle(
+        scenario_id="scen_clamp",
+        bundle_sha256="b" * 64,
+        ev_library_version="1.0.0",
+        fds_fragment="",
+        total_peak_hrr_mw=0.2,
+        ev_count=1,
+    )
+    assessment = assess_scenario_physics(text, bundle, budget=None)
+    assert assessment["nominal_energy_mj"] == pytest.approx(200.0, rel=1e-3)
+    assert assessment["nominal_energy_within_t_end_mj"] == pytest.approx(25.0, rel=1e-3)
+
+
+def test_compose_scenario_ignores_tail_in_comments(box_model):
+    """Finding 6: comments with &TAIL / do not trigger duplicate TAIL error."""
+    from ifc_to_fds.mapping.exporter import serialize_fds
+    from ifc_to_fds.fire.scenario_emitter import emit_fire_scenario, EVSelection
+    from ifc_to_fds.fire.scenario_composer import compose_scenario
+    from ifc_to_fds.domain.mapping import MappingPlan
+
+    base_text, manifest = serialize_fds(box_model)
+    # Add a comment containing &TAIL /
+    commented_base = "! Note about &TAIL / in comment\n" + base_text
+    plan = MappingPlan(decisions=[], cell_size=0.2)
+    ev = EVSelection(preset_id="e-bike-lfp", position=(1.0, 0.5, 1.5))
+    bundle = emit_fire_scenario(plan, "a" * 64, [ev])
+    composed = compose_scenario(commented_base, bundle, manifest)
+    assert "! Note about &TAIL /" in composed
+    assert composed.strip().endswith("&TAIL /")
+
+
+def test_check_opening_grid_alignment_allows_door_cutting_into_floor():
+    """Finding 7: door opening with zmin=-0.01 (cutting into floor) is not marked INCONCLUSIVE."""
+    from ifc_to_fds.validation.effective import check_opening_grid_alignment
+    from ifc_to_fds.validation.parser import parse_fds
+    from ifc_to_fds.geometry.mesh import box_mesh
+
+    mesh = parse_fds(
+        "&HEAD CHID='grid' /\n&TIME T_END=0 /\n"
+        "&MESH ID='real', IJK=30,5,15, XB=0.05,3.05,0,1,0,3 /\n&TAIL /\n"
+    )
+    host = BoundingBox(xmin=0.5, xmax=3.0, ymin=0.2, ymax=0.25, zmin=0.0, zmax=3.0)
+    # Door opening extending 10mm below floor (zmin = -0.01)
+    door_box = BoundingBox(xmin=1.0, xmax=2.0, ymin=0.2, ymax=0.25, zmin=-0.01, zmax=2.1)
+    res = check_opening_grid_alignment(box_mesh(door_box), host, mesh)
+    assert res["status"] != "INCONCLUSIVE"
+    assert res["risk_sealed_by_grid"] is False
+    assert res["normal_axis"] == "Y"
+
+
+def test_geometry_checker_provides_informative_reason_on_pass(box_model):
+    """Finding 8: GeometryChecker provides non-empty informative reason on PASS."""
+    from ifc_to_fds.validation.checkers.geometry import GeometryChecker
+    from ifc_to_fds.domain.validation.model import ValidationContext, GateStatus
+    from ifc_to_fds.mapping.exporter import serialize_fds
+
+    text, manifest = serialize_fds(box_model)
+    context = ValidationContext(model=box_model, fds_text=text, manifest=manifest)
+    outcome = GeometryChecker().check(context)
+    assert outcome.result.status == GateStatus.PASS
+    assert bool(outcome.result.reason.strip())
+    assert "verified within tolerance" in outcome.result.reason
+
+
+def test_submit_scenario_job_cleans_up_directory_on_generic_failure(monkeypatch):
+    """Finding 9: submit_scenario_job cleans up temporary directory if submit raises generic error."""
+    from fastapi.testclient import TestClient
+    from ifc_to_fds.server import app, manager
+    from pathlib import Path
+
+    client = TestClient(app, raise_server_exceptions=True)
+    payload = {
+        "scenario_id": "SCEN_ERR",
+        "bundle_sha256": "c" * 64,
+        "ev_selections": [{"preset_id": "auto-nmc", "position": [1.0, 1.0, 1.0]}],
+    }
+    created_dirs = []
+    real_mkdir = Path.mkdir
+
+    def track_mkdir(self, *args, **kwargs):
+        if "job-" in self.name:
+            created_dirs.append(self)
+        return real_mkdir(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "mkdir", track_mkdir)
+    monkeypatch.setattr(manager, "submit", lambda *args, **kwargs: (_ for _ in ()).throw(IOError("Disk write error")))
+
+    with pytest.raises(IOError, match="Disk write error"):
+        client.post("/api/scenario-jobs", json=payload)
+
+    assert len(created_dirs) == 1
+    assert not created_dirs[0].exists()
+
+
+def test_restore_package_without_storage_format(tmp_path):
+    """Restore package verifies dict package without storage_format."""
+    from ifc_to_fds.geometry.storage import restore_package
+    from ifc_to_fds.geometry.package_integrity import seal
+    from ifc_to_fds.core.canonical import SCHEMA_VERSION
+    import json
+    import zipfile
+
+    pkg_dict = seal({
+        "schema_version": SCHEMA_VERSION,
+        "units": "METRE",
+        "coordinate_frame": "COMMON_WORLD",
+        "elements": {},
+    })
+    zip_path = tmp_path / "pkg.zip"
+    with zipfile.ZipFile(zip_path, "w") as zf:
+        zf.writestr("index.json", json.dumps(pkg_dict))
+    target = tmp_path / "extracted.json"
+    restored = restore_package(zip_path, target)
+    assert isinstance(restored, dict)
+    assert restored["schema_version"] == SCHEMA_VERSION
+
+
+def test_scenario_request_converts_legacy_opening_events_and_extra_fields():
+    """ScenarioRequest converts opening_events to opening_states and strips chemistry/vehicle_class."""
+    from ifc_to_fds.fire.scenario_request import ScenarioRequest
+
+    payload = {
+        "bundle_sha256": "f" * 64,
+        "ev_selections": [
+            {
+                "preset_id": "auto-nmc",
+                "position": [0, 0, 0.75],
+                "vehicle_class": "auto",
+                "chemistry": "NMC",
+            }
+        ],
+        "vehicle_class": "auto",
+        "chemistry": "NMC",
+        "opening_events": [
+            {"entity_key": "door_1", "state": "OPEN", "event_time_s": 45.0}
+        ],
+    }
+    req = ScenarioRequest.model_validate(payload)
+    assert len(req.opening_states) == 1
+    assert req.opening_states[0].entity_key == "door_1"
+    assert req.opening_states[0].event_time_s == 45.0
+
+
+def test_configure_scenario_time_handles_inline_comment():
+    """configure_scenario_time strips inline comment before appending T_END."""
+    from ifc_to_fds.fire.scenario_composer import configure_scenario_time
+    from ifc_to_fds.validation.parser import parse_fds
+
+    text = "&HEAD CHID='cmt' /\n&TIME DT=0.05\n! time step comment\n/\n&MESH IJK=1,1,1, XB=0,1,0,1,0,1 /\n&TAIL /\n"
+    res, end = configure_scenario_time(text, [], requested_end_s=600.0)
+    assert end == 600.0
+    parsed = parse_fds(res)
+    assert not parsed.errors
+    assert not parsed.unsupported
+
+
+def test_compose_scenario_replace_record_handles_inline_comment(box_model):
+    """compose_scenario strips inline comment before appending CTRL_ID in OBST."""
+    from ifc_to_fds.mapping.exporter import serialize_fds
+    from ifc_to_fds.fire.scenario_emitter import emit_fire_scenario, EVSelection
+    from ifc_to_fds.fire.scenario_composer import compose_scenario
+    from ifc_to_fds.domain.mapping import build_mapping_plan
+
+    door = box_model.elements[0]
+    door.ifc_type = "IfcDoor"
+    base_text, manifest = serialize_fds(box_model)
+    # Add inline comment inside the door OBST
+    base_text = base_text.replace("&OBST ID='OBST_1'", "&OBST ID='OBST_1' ! original door comment ")
+    plan = build_mapping_plan(box_model)
+    ev = EVSelection(preset_id="e-bike-lfp", position=(1.0, 0.5, 1.5), dimensions=(0.4, 0.4, 0.4))
+    bundle = emit_fire_scenario(
+        plan, "a" * 64,
+        [ev],
+        opening_states=[dict(entity_key=door.entity_key, state="OPEN", event_time_s=10.0)],
+    )
+    composed = compose_scenario(base_text, bundle, manifest)
+    assert "CTRL_ID=" in composed
+    assert "! original door comment" not in composed or "CTRL_ID=" in composed
+
+
+def test_effective_obstructions_without_mesh_is_inconclusive():
+    """effective_obstructions without MESH returns INCONCLUSIVE."""
+    from ifc_to_fds.validation.effective import effective_obstructions
+
+    res = effective_obstructions("&HEAD CHID='nomesh' /\n&TAIL /\n", "")
+    assert res.status == "INCONCLUSIVE"
+    assert "Unsupported FDS syntax" in res.reason
+
+
+def test_geometry_checker_pass_reason_formats_count(box_model):
+    """GeometryChecker formats count of verified elements, not python set repr."""
+    from ifc_to_fds.validation.checkers.geometry import GeometryChecker
+    from ifc_to_fds.domain.validation.model import ValidationContext
+    from ifc_to_fds.mapping.exporter import serialize_fds
+
+    text, manifest = serialize_fds(box_model)
+    context = ValidationContext(model=box_model, fds_text=text, manifest=manifest)
+    outcome = GeometryChecker().check(context)
+    assert "All 1 physical solid elements verified within tolerance" in outcome.result.reason
+
+
+def test_check_opening_grid_alignment_tangent_outside_returns_inconclusive():
+    """Opening whose tangent bounds lie completely outside host returns INCONCLUSIVE."""
+    from ifc_to_fds.validation.effective import check_opening_grid_alignment
+    from ifc_to_fds.validation.parser import parse_fds
+    from ifc_to_fds.geometry.mesh import box_mesh
+
+    mesh = parse_fds(
+        "&HEAD CHID='grid' /\n&TIME T_END=0 /\n"
+        "&MESH ID='real', IJK=30,5,15, XB=0.05,3.05,0,1,0,3 /\n&TAIL /\n"
+    )
+    host = BoundingBox(xmin=0.5, xmax=3.0, ymin=0.2, ymax=0.25, zmin=0.0, zmax=3.0)
+    # Opening entirely outside host's X range (xmax of host is 3.0, opening is 3.01 to 3.04 within 0.05m tolerance)
+    outside_box = BoundingBox(xmin=3.01, xmax=3.04, ymin=0.2, ymax=0.25, zmin=0.0, zmax=2.1)
+    res = check_opening_grid_alignment(box_mesh(outside_box), host, mesh)
+    assert res["status"] == "INCONCLUSIVE"
+    assert "does not intersect host cross-section" in res["reason"]
+
+

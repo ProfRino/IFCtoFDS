@@ -42,6 +42,8 @@ def render_network(plan, elements):
 
     lines = []
     for kind, values, keys in network_records(plan):
+        if not keys or any(key not in by_key for key in keys):
+            raise ValueError(f"HVAC {kind} record has missing source assignments: {values.get('ID')}")
         e = by_key[keys[0]]
         source = dict(entity_key=e.entity_key, entity_keys=keys, source_id=e.source_id,
                       global_id=e.global_id, step_id=e.step_id, ifc_type=e.ifc_type)

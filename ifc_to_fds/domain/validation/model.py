@@ -37,12 +37,14 @@ class GateResult(BaseModel):
     status: GateStatus = GateStatus.NOT_RUN
     required: bool = True
     reason: str = ""
+    reason_code: str = ""
     evidence: dict[str, Any] = Field(default_factory=dict)
 
 
 class AuditConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     fail_fast_on_source_errors: StrictBool = False
+    collect_partial_geometry_evidence: StrictBool = False
     surface_tolerance_m: float = Field(default=0.001, gt=0, allow_inf_nan=False)
     relative_volume_tolerance: float = Field(
         default=0.001, ge=0, lt=1, allow_inf_nan=False
@@ -132,6 +134,24 @@ class AcceptanceReport(BaseModel):
         return value
 
     def finalize(self):
+        pass_reasons = {
+            "syntax": "Serialized FDS parsed without syntax errors or unsupported records",
+            "traceability": "Serialized primitives agree with their source and manifest identities",
+            "scope": "Exported primitives comply with the resolved IFC scope",
+            "geometry": "Completed solid comparisons meet the configured tolerances",
+            "openings": "Checked source openings retain their subtraction and free passage",
+            "mep": "Source MEP relationships and the mapping inventory agree",
+            "representation": "Exported solids comply with the source representation decisions",
+            "boundary": "Required boundary treatments have no unresolved findings",
+            "domain": "Declared FDS meshes agree with the resolved simulation domain",
+        }
+        for name, gate in self.gates.items():
+            if not gate.reason.strip() and gate.status == GateStatus.PASS and name in pass_reasons:
+                gate.reason = pass_reasons[name]
+            if not gate.reason.strip() and gate.status == GateStatus.NOT_RUN:
+                gate.reason = f"No result was produced for the {name} check"
+            if not gate.reason_code:
+                gate.reason_code = f"{name.upper()}_{gate.status.value}"
         # NOTE (M13 contract): SIMULATION_VERIFIED is intentionally never issued
         # here -- simulation_status is only REJECTED or INCONCLUSIVE until the
         # simulation epic defines solver/physics/scenario/mesh gates. The
@@ -196,9 +216,27 @@ class AcceptanceReport(BaseModel):
             "",
             f"Accounted elements: {self.total_elements_checked}; matched solids: {self.matched_count}",
             "",
-            "| Gate | Status | Reason |",
-            "|---|---|---|",
         ]
+        exported = self.coverage.get("fds_export", {})
+        if "compared_entities" in exported:
+            lines += [
+                f"FDS written: {exported['entities']} entities / {exported['primitives']} primitives.",
+                f"Geometry comparisons ({exported['comparison_mode']}): "
+                f"{exported['compared_entities']} completed / {exported['attempted_entities']} attempted; "
+                f"{exported['verified_entities']} verified; {exported['deviated_entities']} deviated; "
+                f"{exported['failed_comparison_entities']} invalid comparisons; "
+                f"{exported['inconclusive_comparison_entities']} inconclusive; "
+                f"{exported['not_compared_entities']} written entities not compared.",
+                "",
+            ]
+            if self.metrics.get("source_topology_preflight_rejected"):
+                lines += [
+                    "Source topology preflight blocked dependent global checks. "
+                    f"{exported['skipped_for_source_errors']} local comparisons skipped. "
+                    "Partial results do not accept the diagnostic FDS artifact.",
+                    "",
+                ]
+        lines += ["| Gate | Status | Reason |", "|---|---|---|"]
         lines += [
             f"| {name} | {g.status.value} | {escape(g.reason)} |"
             for name, g in self.gates.items()

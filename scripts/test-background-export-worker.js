@@ -123,6 +123,31 @@ for (const [workerCtx, getResponse] of [[ctx, () => response], [inlineCtx, () =>
 }
 console.log('Verified FDS display is parsed in the background worker and inline bundle.');
 
+// Metadata-only preview and malformed triangle inputs must fail before writing an FDS result.
+for (const [workerCtx, getResponse] of [[ctx, () => response], [inlineCtx, () => inlineResponse]]) {
+    const bounds = {xmin:0,xmax:1,ymin:0,ymax:1,zmin:0,zmax:1};
+    const element = {stepId:6967,entityKey:'source:6967',name:'Preview wall',ifcType:'IFCWALL',convertible:true,exportAsSolid:true,fdsRole:'solid',bounds};
+    for (const mode of ['geom','hybrid','obst']) {
+        workerCtx.onmessage({data:{type:'export',requestId:7,ifcModel:{backendPreview:true,bounds,elements:[element]},options:{mode}}});
+        const failure = getResponse();
+        if (failure.type !== 'error' || failure.error.name !== 'ExportGeometryInputError' || failure.error.entityId !== 6967 ||
+            failure.error.stage !== 'serialization' || failure.error.requestId !== 7 || !/Verified Conversion/.test(failure.error.message)) {
+            throw new Error('Preview-only worker input escaped its export geometry contract: ' + JSON.stringify(failure));
+        }
+    }
+    for (const mesh of [undefined,{vertices:[],faces:[]},{vertices:[null],faces:[[0,0,0]]},
+        {vertices:[[0,0,0],[1,0,0],[0,1,0]],faces:[null]},
+        {vertices:[[0,0,0],[1,0,0],[0,1,0]],faces:[[0,1,99]]},
+        {vertices:[[0,0,0],[1,0,0],[2,0,0]],faces:[[0,1,2]]}]) {
+        workerCtx.onmessage({data:{type:'export',requestId:71,ifcModel:{elements:[Object.assign({},element,{mesh})]},options:{mode:'geom'}}});
+        const failure = getResponse();
+        if (failure.type !== 'error' || failure.error.name !== 'ExportGeometryInputError' || failure.error.entityId !== 6967 || failure.error.stage !== 'serialization') {
+            throw new Error('Malformed GEOM mesh did not preserve its structured diagnostic: ' + JSON.stringify(failure));
+        }
+    }
+}
+console.log('Worker and inline preview-only/malformed GEOM inputs return actionable serialization diagnostics with entity identity.');
+
 // Errors preserve stage/stack/identity without embedding the conversion payload.
 for (const [workerCtx, getResponse] of [[ctx, () => response], [inlineCtx, () => inlineResponse]]) {
     vm.runInContext("IfcFds.fds.FdsNamelistParser.prototype.parse = function () { throw new RangeError('parser fixture failure'); };", workerCtx);

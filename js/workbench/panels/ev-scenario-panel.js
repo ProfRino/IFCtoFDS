@@ -292,6 +292,11 @@
                 if (res && res.status === 429) {
                     return { status: 429, error: 'Queue is full' };
                 }
+                if (res && res.ok === false) {
+                    return (res.text ? res.text() : Promise.resolve('')).then(function (t) {
+                        return { status: res.status, error: t || ('HTTP error ' + res.status) };
+                    });
+                }
                 return res.json ? res.json() : res;
             });
         };
@@ -428,7 +433,7 @@
                             res = Object.assign({}, res, pollRes);
                             if (!res.verdict) {
                                 if (pollRes.result && pollRes.result.verdict) {
-                                    res.verdict = pollRes.result.verdict;
+                                    res = Object.assign({}, res, pollRes.result);
                                 } else {
                                     var getResultFn = options.getResultFn || null;
                                     if (getResultFn) {
@@ -758,7 +763,7 @@
 
                 var thead = doc.createElement('thead');
                 var trHead = doc.createElement('tr');
-                ['ID', 'Vehicles', 'SoC %', 'Peak HRR', 'Mesh', 'Verdict'].forEach(function (col) {
+                ['ID', 'Vehicles', 'SoC %', 'Peak HRR', 'Mesh', 'Physics', 'Simulation', 'Job result'].forEach(function (col) {
                     var th = doc.createElement('th');
                     th.style.textAlign = 'left';
                     th.style.padding = '4px';
@@ -796,8 +801,14 @@
 
                     var tdMesh = doc.createElement('td');
                     tdMesh.style.padding = '4px';
-                    tdMesh.textContent = res.mesh_status || 'PASS';
+                    tdMesh.textContent = res.mesh_status || 'UNKNOWN';
                     tr.appendChild(tdMesh);
+                    [res.physics_status, res.simulation_status].forEach(function (status) {
+                        var td = doc.createElement('td');
+                        td.style.padding = '4px';
+                        td.textContent = status || 'NOT_RUN';
+                        tr.appendChild(td);
+                    });
 
                     var tdVerdict = doc.createElement('td');
                     tdVerdict.style.padding = '4px';

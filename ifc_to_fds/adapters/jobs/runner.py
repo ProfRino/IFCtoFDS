@@ -42,148 +42,67 @@ class WorkerRunner:
                 )
             elif request.get("mode") == "scenario":
                 import hashlib
-                from ifc_to_fds.fire.mesh_gate import check_mesh_resolution
+                from ifc_to_fds.application.services.scenario_base import load_verified_base
+                from ifc_to_fds.fire.scenario_composer import compose_scenario, configure_scenario_time
                 from ifc_to_fds.fire.scenario_emitter import emit_fire_scenario
-                from ifc_to_fds.domain.mapping import MappingPlan
+                from ifc_to_fds.fire.scenario_request import ScenarioRequest
+                from ifc_to_fds.fire.physics_assessment import assess_scenario_physics
+                from ifc_to_fds.domain.validation.model import ValidationContext, AuditConfig
+                from ifc_to_fds.validation.checkers.mesh_resolution import MeshResolutionChecker
+                from ifc_to_fds.results import ARTIFACTS
 
                 scenario_payload = request.get("configuration") or {}
                 if not scenario_payload and (directory / "scenario.json").is_file():
-                    try:
-                        scenario_payload = json.loads(
-                            (directory / "scenario.json").read_text(encoding="utf-8")
-                        )
-                    except Exception:
-                        scenario_payload = {}
-                scenario_input = (
-                    scenario_payload.get("scenario_data")
-                    if isinstance(scenario_payload, dict) and "scenario_data" in scenario_payload
-                    else scenario_payload
+                    scenario_payload = json.loads((directory / "scenario.json").read_text(encoding="utf-8"))
+                scenario = ScenarioRequest.model_validate(scenario_payload)
+                base_text, mapping_plan, base_manifest = load_verified_base(directory.parent, scenario.bundle_sha256)
+                bundle = emit_fire_scenario(
+                    mapping_plan=mapping_plan,
+                    bundle_sha256=base_manifest.bundle_sha256,
+                    ev_selections=scenario.ev_selections,
+                    opening_states=scenario.opening_states,
+                    devices=scenario.devices,
+                    verification_status="MAPPING_VERIFIED",
                 )
-                cell_size = (
-                    scenario_payload.get("cell_size", 0.2)
-                    if isinstance(scenario_payload, dict)
-                    else 0.2
+                composed = compose_scenario(base_text, bundle, base_manifest)
+                final_text, end = configure_scenario_time(composed, bundle.opening_events, scenario.t_end_s)
+                mesh_gate = MeshResolutionChecker().check(ValidationContext(
+                    model=None, fds_text=final_text, manifest=base_manifest, config=AuditConfig()
+                )).result
+                physics = assess_scenario_physics(final_text, bundle, scenario.energy_budget)
+                scenario_bytes = final_text.encode("utf-8")
+                (directory / "scenario.fds").write_bytes(scenario_bytes)
+                evidence = dict(
+                    mesh_gate.evidence,
+                    fds_sha256=hashlib.sha256(scenario_bytes).hexdigest(),
+                    t_end_s=end,
+                    scenario_id=bundle.scenario_id,
+                    bundle_sha256=bundle.bundle_sha256,
+                    ev_evaluations=[ev.model_dump() for ev in bundle.ev_selections],
+                    physics=physics,
                 )
-                mesh_gate = check_mesh_resolution(scenario_input, cell_size=cell_size)
-
-                peak_hrr_mw = 0.0
-                if isinstance(scenario_input, dict):
-                    peak_hrr_mw = (
-                        scenario_input.get("total_peak_hrr_mw")
-                        or scenario_input.get("peak_hrr_mw")
-                        or 0.0
-                    )
-                elif hasattr(scenario_input, "total_peak_hrr_mw"):
-                    peak_hrr_mw = scenario_input.total_peak_hrr_mw
-                if not peak_hrr_mw and isinstance(scenario_payload, dict):
-                    peak_hrr_mw = (
-                        scenario_payload.get("total_peak_hrr_mw")
-                        or scenario_payload.get("peak_hrr_mw")
-                        or 0.0
-                    )
-                if not peak_hrr_mw and mesh_gate.evidence:
-                    peak_hrr_mw = (mesh_gate.evidence.get("peak_hrr_kw") or 0.0) / 1000.0
-
-                # Extract scenario emitter parameters
-                bundle_sha = ""
-                ev_selections = []
-                opening_states = None
-                devices = None
-                if isinstance(scenario_input, dict):
-                    bundle_sha = scenario_input.get("bundle_sha256") or ""
-                    ev_selections = scenario_input.get("ev_selections") or []
-                    opening_states = scenario_input.get("opening_states")
-                    devices = scenario_input.get("devices")
-                if not bundle_sha and isinstance(scenario_payload, dict):
-                    bundle_sha = scenario_payload.get("bundle_sha256") or ""
-                if not ev_selections and isinstance(scenario_payload, dict):
-                    ev_selections = scenario_payload.get("ev_selections") or []
-                if not opening_states and isinstance(scenario_payload, dict):
-                    opening_states = scenario_payload.get("opening_states")
-                if not devices and isinstance(scenario_payload, dict):
-                    devices = scenario_payload.get("devices")
-
-                from ifc_to_fds.application.services.scenario_base import load_verified_base
-                base_fds_text, mapping_plan, base_manifest = load_verified_base(directory.parent, bundle_sha)
-                if not ev_selections:
-                    raise ValueError("At least one EV selection is required")
-
-                evidence_dict = dict(mesh_gate.evidence) if mesh_gate.evidence else {}
-                bundle = None
-                if ev_selections:
-                    bundle = emit_fire_scenario(
-                        mapping_plan=mapping_plan,
-                        bundle_sha256=base_manifest.bundle_sha256,
-                        ev_selections=ev_selections,
-                        opening_states=opening_states,
-                        devices=devices,
-                        verification_status="MAPPING_VERIFIED",
-                    )
-                    peak_hrr_mw = bundle.total_peak_hrr_mw
-                    from ifc_to_fds.fire.scenario_composer import compose_scenario
-                    scenario_fds_text = compose_scenario(base_fds_text, bundle, base_manifest)
-                    from ifc_to_fds.validation.checkers.mesh_resolution import MeshResolutionChecker
-                    from ifc_to_fds.domain.validation.model import ValidationContext, AuditConfig
-                    mesh_gate = MeshResolutionChecker().check(ValidationContext(
-                        model=object(), fds_text=scenario_fds_text, manifest=None, config=AuditConfig()
-                    )).result
-                    evidence_dict = dict(mesh_gate.evidence)
-
-                    # Update &TIME T_END so FDS simulation runs the full fire duration
-                    # Preserve longer T_END if already configured
-                    import re
-                    m_tend = re.search(r"&TIME\s+[^/]*?T_END\s*=\s*([\d.]+)", scenario_fds_text)
-                    curr_tend = float(m_tend.group(1)) if m_tend else 0.0
-                    from ifc_to_fds.validation.parser import parse_fds
-                    ramp_end = max((r.values.get("T", [0])[0] for r in parse_fds(scenario_fds_text).records if r.kind == "RAMP"), default=0)
-                    target_tend = max(curr_tend, 1800.0, ramp_end)
-                    if isinstance(scenario_input, dict) and "t_end_s" in scenario_input:
-                        try:
-                            target_tend = max(target_tend, float(scenario_input["t_end_s"]))
-                        except (ValueError, TypeError):
-                            pass
-
-                    if m_tend:
-                        scenario_fds_text = re.sub(
-                            r"(&TIME\s+[^/]*?T_END\s*=\s*)[\d.]+",
-                            r"\g<1>" + f"{target_tend:.1f}",
-                            scenario_fds_text,
-                        )
-                    else:
-                        scenario_fds_text = re.sub(
-                            r"(&HEAD[^\n]*\n)",
-                            r"\1&TIME T_END=" + f"{target_tend:.1f}" + " /\n",
-                            scenario_fds_text,
-                        )
-
-                    (directory / "scenario.fds").write_text(scenario_fds_text, encoding="utf-8")
-
-                    evidence_dict["scenario_id"] = bundle.scenario_id
-                    evidence_dict["bundle_sha256"] = bundle.bundle_sha256
-                    evidence_dict["ev_evaluations"] = [
-                        ev.model_dump() if hasattr(ev, "model_dump") else ev
-                        for ev in bundle.ev_selections
-                    ]
-
-                from ifc_to_fds.results import ARTIFACTS
-                available_artifacts = {
-                    k: dict(filename=v)
-                    for k, v in ARTIFACTS.items()
-                    if (directory / v).is_file()
-                }
+                mesh_status = mesh_gate.status.value
+                physics_status = physics.get("status", "INCONCLUSIVE")
+                if mesh_status == "FAIL" or physics_status == "FAIL":
+                    scenario_verdict = "FAIL"
+                else:
+                    scenario_verdict = mesh_status
                 result = {
                     "status": "COMPLETED",
-                    "verdict": mesh_gate.status.value,
-                    "mesh_status": mesh_gate.status.value,
+                    "verdict": scenario_verdict,
+                    "mesh_status": mesh_status,
+                    "physics_status": physics_status,
                     "simulation_status": "NOT_RUN",
-                    "peak_hrr_mw": float(peak_hrr_mw),
-                    "evidence": evidence_dict,
-                    "artifacts": available_artifacts,
+                    "peak_hrr_mw": bundle.total_peak_hrr_mw,
+                    "evidence": evidence,
+                    "artifacts": {
+                        key: dict(filename=name)
+                        for key, name in ARTIFACTS.items() if (directory / name).is_file()
+                    },
+                    "scenario_id": bundle.scenario_id,
+                    "bundle_sha256": bundle.bundle_sha256,
+                    "fds_file": "scenario.fds",
                 }
-                if bundle:
-                    result["scenario_id"] = bundle.scenario_id
-                    result["bundle_sha256"] = bundle.bundle_sha256
-                    result["fds_file"] = "scenario.fds"
             else:
                 from ifc_to_fds.pipeline import convert, save_artifacts
 

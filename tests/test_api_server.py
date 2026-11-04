@@ -457,7 +457,9 @@ def test_submit_scenario_job_executes_mesh_gate(monkeypatch, tiny_ifc):
     assert "&RAMP" in fds_content
     assert "&SURF" in fds_content
     assert "&VENT" in fds_content
-    assert "HYDROGEN FLUORIDE" in fds_content
+    assert "HYDROGEN FLUORIDE" not in fds_content
+    assert res["physics_status"] == "INCONCLUSIVE"
+    assert res["evidence"]["physics"]["hf_status"] == "NOT_MODELED"
 
     # Verify scenario_fds artifact is downloadable via API (M-8)
     art_res = client.get(f"/api/jobs/{jid}/artifacts/scenario_fds")

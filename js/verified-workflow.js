@@ -1,11 +1,38 @@
 (function (ns) {
     'use strict';
     var jobId = null, stopped = false, fallback = null, generation = 0, inventoryGeneration = 0;
+    var domainSources = null, domainEdited = false;
+    var domainAxes = ['xmin','xmax','ymin','ymax','zmin','zmax'];
     function cancelled() { var error = new Error('Conversion cancelled'); error.name = 'AbortError'; return error; }
     function get(id) { return document.getElementById('verified-' + id); }
     function files() { return Array.prototype.slice.call(get('sources').files || []); }
     function selectedFiles() { return files().length ? files() : (fallback ? [fallback] : []); }
     function progress(text) { get('progress').textContent = text; }
+    function synchronizeDomainSources() {
+        var chosen = selectedFiles();
+        if (domainSources === null) { domainSources = chosen.slice(); return false; }
+        if (domainSources.length === chosen.length && domainSources.every(function (file, i) { return file === chosen[i]; })) return false;
+        domainSources = chosen.slice();
+        domainEdited = false;
+        get('use-domain').checked = false;
+        domainAxes.forEach(function (axis) { get('domain-' + axis).value = ''; });
+        var box = get('domain-box');
+        if (box) box.style.display = 'none';
+        progress('Sources changed; the previous fixed domain was cleared. Declare a new domain for these sources if needed.');
+        return true;
+    }
+    function readBounds(prefix, label) {
+        var bounds = {};
+        domainAxes.forEach(function (axis) {
+            var value = get(prefix + axis).value;
+            if (String(value).trim() === '' || !Number.isFinite(Number(value))) throw new Error(label + ': enter six finite coordinates in metres.');
+            bounds[axis] = Number(value);
+        });
+        ['x','y','z'].forEach(function (axis) {
+            if (bounds[axis + 'min'] >= bounds[axis + 'max']) throw new Error(label + ': ' + axis.toUpperCase() + ' minimum must be less than maximum.');
+        });
+        return bounds;
+    }
     function getAuthHeaders(extraHeaders) {
         var headers = Object.assign({}, extraHeaders || {});
         var key = (typeof window !== 'undefined' && window.IFCFDS_API_KEY) || '';
@@ -69,27 +96,24 @@
             if (!panel) {
                 return Promise.reject(new Error('evScenarioPanel module not loaded'));
             }
-            return panel.queueScenarioBatch(scenarios, dispatchFn || function (scenario) {
-                var payload = {
-                    scenario_id: scenario.scenario_id,
-                    bundle_sha256: scenario.bundle_sha256,
-                    ev_library_version: scenario.ev_library_version,
-                    total_peak_hrr_mw: scenario.total_peak_hrr_mw,
-                    scenario_data: scenario
-                };
-                return authFetch('/api/scenario-jobs', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
-                }).then(response);
-            });
+            return panel.queueScenarioBatch(scenarios, dispatchFn);
         },
         hasFiles: function () { return selectedFiles().length > 0; },
         setFallback: function (file) {
-            if (fallback !== file) { inventoryGeneration++; get('storeys').replaceChildren(); }
             fallback = file;
+            if (synchronizeDomainSources()) { inventoryGeneration++; get('storeys').replaceChildren(); }
             var convertBtn = document.getElementById('convert-verified');
             if (convertBtn && file) convertBtn.disabled = false;
+        },
+        suggestDomainFromSource: function (file, bounds) {
+            synchronizeDomainSources();
+            var chosen = selectedFiles();
+            // Viewer coordinates cannot define the domain of a different or federated source set.
+            if (chosen.length !== 1 || chosen[0] !== file || domainEdited || get('use-domain').checked) return false;
+            if (!bounds || !domainAxes.every(function (axis) { return typeof bounds[axis] === 'number' && Number.isFinite(bounds[axis]); }) ||
+                !['x','y','z'].every(function (axis) { return bounds[axis + 'min'] < bounds[axis + 'max']; })) return false;
+            domainAxes.forEach(function (axis) { get('domain-' + axis).value = String(bounds[axis]); });
+            return true;
         },
         usePreviewInventory: function (inventory, file) {
             var chosen = selectedFiles();
@@ -106,6 +130,11 @@
             return active ? authFetch('/api/jobs/' + active + '/cancel', {method: 'POST'}).then(response) : Promise.resolve();
         },
         init: function () {
+            synchronizeDomainSources();
+            domainAxes.forEach(function (axis) {
+                get('domain-' + axis).addEventListener('input', function () { domainEdited = true; });
+            });
+            get('use-domain').addEventListener('change', function () { if (get('use-domain').checked) domainEdited = true; });
             authFetch('/api/reference-cases').then(response).then(function (data) {
                 data.cases.forEach(function (entry) {
                     var id = entry.id;
@@ -115,6 +144,7 @@
             }).catch(function () {});
             get('sources').addEventListener('change', function () {
                 inventoryGeneration++;
+                synchronizeDomainSources();
                 ns.verified.cancel().catch(function (err) { progress(err.message); });
                 transformInputs(); get('storeys').replaceChildren();
                 document.getElementById('convert-verified').disabled = !selectedFiles().length;
@@ -126,6 +156,7 @@
         },
         run: async function (file, configuration, onProgress) {
             fallback = file; stopped = false; jobId = null;
+            synchronizeDomainSources();
             var runGeneration = ++generation, localJobId = null;
             if (location.protocol === 'file:') return Promise.reject(new Error('Open http://127.0.0.1:8000 for Verified Conversion'));
             var sources = selectedFiles();
@@ -137,13 +168,16 @@
             if (get('system-decisions').files.length) configuration.system_decisions = JSON.parse(await get('system-decisions').files[0].text());
             if (get('deltas').files.length) configuration.intentional_deltas = JSON.parse(await get('deltas').files[0].text());
             if (get('use-domain').checked) {
-                configuration.simulation_domain = {};
-                ['xmin','xmax','ymin','ymax','zmin','zmax'].forEach(function (key) { configuration.simulation_domain[key] = Number(get('domain-' + key).value); });
+                configuration.simulation_domain = readBounds('domain-', 'Fixed simulation domain');
+                configuration.simulation_domain_coordinate_frame = 'WORLD';
+            } else {
+                delete configuration.simulation_domain;
+                delete configuration.simulation_domain_coordinate_frame;
             }
             configuration.scope = {storeys: Array.prototype.filter.call(get('storeys').options, function (o) { return o.selected; }).map(function (o) { return o.value; })};
             if (get('use-bounds').checked) {
-                configuration.scope.bounding_box = {};
-                ['xmin','xmax','ymin','ymax','zmin','zmax'].forEach(function (key) { configuration.scope.bounding_box[key] = Number(get(key).value); });
+                configuration.scope.bounding_box = readBounds('', 'Export scope');
+                configuration.scope.coordinate_frame = 'WORLD';
             }
             configuration.sources = {common_coordinates: get('common').checked};
             if (sources.length > 1 && !get('common').checked && !get('transform-confirm').checked) return Promise.reject(new Error('Confirm shared coordinates or confirm the source offsets before converting'));

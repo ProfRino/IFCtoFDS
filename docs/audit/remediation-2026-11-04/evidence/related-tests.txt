@@ -1,0 +1,12 @@
+Date: 2026-11-04
+Branch: codex/conversion-contracts-repair
+HEAD: c982eed7009000149680894dbf147d143b9db9be plus existing uncommitted repairs
+Command: .venv/Scripts/python.exe -B -m pytest -q -p no:cacheprovider tests/test_partial_audit_contract.py tests/test_fire_scenario_emitter.py tests/test_scenario_integrity.py
+Exit code: 0
+26 passed, 2 warnings in 1.19s
+Warnings: tests/test_scenario_integrity.py::test_verified_base_rejects_changed_fds_and_acceptance
+          tests/test_scenario_integrity.py::test_runner_preserves_effective_geometry_result
+trimesh/triangles.py:302 RuntimeWarning: invalid value encountered in divide
+    center_mass = integrated[1:4] / volume
+
+Scope: related existing tests only. Does not establish that new acceptance criteria pass.

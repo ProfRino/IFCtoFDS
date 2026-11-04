@@ -45,6 +45,10 @@ class AcceptanceEvaluator:
             report.findings.extend(f.model_copy(deep=True) for f in outcome.findings)
             report.metrics.update(deepcopy(outcome.metrics))
             report.element_statuses.update(deepcopy(outcome.element_statuses))
+            for key, value in outcome.coverage.items():
+                if key in report.coverage and report.coverage[key] != value:
+                    raise ValueError(f"Conflicting audit coverage: {key}")
+                report.coverage[key] = deepcopy(value)
 
         # Update summary counts
         statuses = report.element_statuses

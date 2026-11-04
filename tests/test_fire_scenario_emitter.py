@@ -18,6 +18,14 @@ def _sample_mapping_plan() -> MappingPlan:
     return MappingPlan()
 
 
+def _door(key: str) -> MappingDecision:
+    return MappingDecision(
+        entity_key=key, strategy=MappingStrategy.OBST, simulation_role="DOOR",
+        fds_representation="OBST",
+        representation_bounds=BoundingBox(xmin=1, xmax=2, ymin=0, ymax=.2, zmin=0, zmax=2.1),
+    )
+
+
 def _valid_bundle_hash() -> str:
     return "a" * 64
 
@@ -164,8 +172,8 @@ def test_emit_cluster_ebikes_with_propagation_delays():
 
 
 def test_emit_scenario_with_devices_and_doors():
-    """Verify DEVC/CTRL output and opening events."""
-    plan = _sample_mapping_plan()
+    """Verify DEVC output and opening events."""
+    plan = MappingPlan(decisions=[_door("DOOR_MAIN"), _door("DOOR_FIRE")])
     ev = EVSelection(preset_id="e-bike-lfp", position=(1.0, 1.0, 0.55))
     devices = [
         DeviceSelection(
@@ -211,6 +219,7 @@ def test_emit_scenario_with_devices_and_doors():
     assert "DOOR_MAIN" in frag
     assert "DOOR_FIRE" in frag
     assert "&CTRL" in frag
+    assert "CTRL_ID='CTRL_DOOR_MAIN'" in frag
 
 
 def test_custom_pack_and_peak_hrr():
@@ -273,7 +282,7 @@ def test_scenario_id_unique_across_matrix_permutations():
         verification_status="MAPPING_VERIFIED",
     )
     bundle_doors = emit_fire_scenario(
-        mapping_plan=plan,
+        mapping_plan=MappingPlan(decisions=[_door("DOOR_1")]),
         bundle_sha256=_valid_bundle_hash(),
         ev_selections=[ev_base],
         opening_states={"DOOR_1": {"state": "OPEN", "event_time_s": 30.0}},
@@ -306,7 +315,8 @@ def test_mixed_preset_unique_fuel_and_surf_binding():
     reac_fuels = re.findall(r"&REAC.*?FUEL='([^']+)'", frag)
     assert len(reac_fuels) == 1, f"Expected 1 composite &REAC line in simple chemistry, found {len(reac_fuels)}"
     assert "REAC_COMPOSITE_EV" in frag
-    assert "&SPEC ID='HYDROGEN FLUORIDE' /" in frag
+    assert "&SPEC ID='HYDROGEN FLUORIDE' /" not in frag
+    assert bundle.hf_preset_yields
     surf_fuel_ids = re.findall(r"&SURF.*?FUEL_ID='([^']+)'", frag)
     assert len(surf_fuel_ids) == 2
     for fid in surf_fuel_ids:
@@ -327,10 +337,7 @@ def test_mixed_preset_unique_fuel_and_surf_binding():
 
 
 def test_door_events_with_representation_bounds():
-    """Verify door control semantics adhere to FDS Section 15.3 (H-5):
-    - OPEN event emits &OBST with CTRL_ID (obstacle present at t=0, removed at t_event -> opens).
-    - CLOSED event emits &HOLE with CTRL_ID (hole present at t=0, removed at t_event -> closes).
-    """
+    """Verify each fill references its timer and the timer has its own initial state."""
     decision_open = MappingDecision(
         entity_key="DOOR_OPEN",
         strategy=MappingStrategy.OBST,
@@ -340,9 +347,9 @@ def test_door_events_with_representation_bounds():
     )
     decision_close = MappingDecision(
         entity_key="DOOR_CLOSE",
-        strategy=MappingStrategy.OBST_HOLE,
+        strategy=MappingStrategy.OBST,
         simulation_role="DOOR",
-        fds_representation="HOLE",
+        fds_representation="OBST",
         representation_bounds=BoundingBox(xmin=5.0, xmax=6.0, ymin=0.0, ymax=0.2, zmin=0.0, zmax=2.1),
     )
     plan = MappingPlan(decisions=[decision_open, decision_close])
@@ -362,12 +369,10 @@ def test_door_events_with_representation_bounds():
     )
 
     frag = bundle.fds_fragment
-    # Controlled &OBST for DOOR_OPEN (starts closed, opens when removed at t=45s)
-    assert "&OBST XB=1,2,0,0.2,0,2.1, SURF_ID='INERT', CTRL_ID='CTRL_DOOR_OPEN' /" in frag
-
-    # Controlled &OBST with INITIAL_STATE=.TRUE. for DOOR_CLOSE (starts open, closes when obstacle appears at t=90s)
-    assert "&OBST XB=5,6,0,0.2,0,2.1, SURF_ID='INERT', CTRL_ID='CTRL_DOOR_CLOSE' /" in frag
-    assert "INITIAL_STATE=.TRUE." in frag
+    assert "CTRL_ID='CTRL_DOOR_OPEN'" in frag
+    assert "CTRL_ID='CTRL_DOOR_CLOSE'" in frag
+    assert re.search(r"CTRL_DOOR_OPEN'.*INITIAL_STATE=\.TRUE\.", frag)
+    assert re.search(r"CTRL_DOOR_CLOSE'.*INITIAL_STATE=\.FALSE\.", frag)
 
 
 def test_ev_selection_dimensions_must_be_strictly_positive():
@@ -387,9 +392,9 @@ def test_ev_selection_dimensions_must_be_strictly_positive():
 
 def test_door_timer_devc_id_preserves_suffix():
     """Verify door timer devc naming prevents truncation of _TIME suffix on long entity keys."""
-    plan = _sample_mapping_plan()
     ev = EVSelection(preset_id="e-bike-lfp", position=(0, 0, 0))
     long_key = "DOOR_EMERGENCY_EXIT_NORTH_WING_LEVEL_1"
+    plan = MappingPlan(decisions=[_door(long_key)])
     opening_states = {long_key: {"state": "OPEN", "event_time_s": 30.0}}
 
     bundle = emit_fire_scenario(
@@ -401,8 +406,7 @@ def test_door_timer_devc_id_preserves_suffix():
     )
 
     frag = bundle.fds_fragment
-    # Suffix _TIME must be preserved in DEVC ID and referenced correctly in CTRL INPUT_ID
-    match = re.search(r"&DEVC ID='([^']+)', QUANTITY='TIME'", frag)
+    match = re.search(r"&DEVC ID='([^']+)', XYZ=", frag)
     assert match is not None
     devc_id = match.group(1)
     assert devc_id.endswith("_TIME")

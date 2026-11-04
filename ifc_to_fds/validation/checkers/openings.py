@@ -7,6 +7,7 @@ from ifc_to_fds.domain.validation.checkers.base import CheckerOutcome
 from ifc_to_fds.domain.validation.model import Finding, GateResult, GateStatus, Severity, ValidationContext
 from ifc_to_fds.geometry.mesh import as_trimesh, valid_solid
 from ifc_to_fds.mapping.boundary import target_mesh
+from ifc_to_fds.validation.effective import check_opening_grid_alignment
 from ifc_to_fds.validation.metrics import SolidCandidateIndex, opening_residual, passage_metrics
 
 
@@ -152,11 +153,8 @@ class OpeningsChecker:
                             )
                         )
 
-                    from ifc_to_fds.validation.effective import check_opening_grid_alignment
-                    cell_sz = getattr(config, "cell_size", 0.2) or 0.2
                     align_info = check_opening_grid_alignment(
-                        opening.bounding_box or opening_solid.bounds,
-                        cell_size=cell_sz,
+                        opening.mesh, e.bounding_box, parsed,
                     )
 
                     metrics.setdefault(key, {})[f"opening:{opening.opening_global_id}"] = dict(

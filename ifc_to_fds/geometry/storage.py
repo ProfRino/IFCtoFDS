@@ -11,7 +11,7 @@ import numpy as np
 from uuid import uuid4
 from ifc_to_fds.diagnostics import operation
 
-from .package import seal
+from .package_integrity import seal, verify_package_metadata
 from ifc_to_fds.core.canonical import SCHEMA_VERSION
 
 
@@ -132,11 +132,9 @@ class DiskPackage(dict):
         )
 
     def verify_index(self):
-        if (
-            self.index.get("storage_format") != "float64-uint32-le-v1"
-            or self.index.get("sha256") != seal(self.index)["sha256"]
-        ):
-            raise ValueError("Geometry index checksum/format mismatch")
+        if self.index.get("storage_format") != "float64-uint32-le-v1":
+            raise ValueError("Geometry index format mismatch")
+        verify_package_metadata(self.index)
 
     def verify(self):
         self.verify_index()
@@ -228,8 +226,6 @@ def restore_package(zip_path, target_json_path):
 
     Includes strict Zip-slip protection preventing directory traversal.
     """
-    from .package import verify_package
-
     zip_path = Path(zip_path)
     target_json = Path(target_json_path).resolve()
     target_payloads = payload_dir(target_json)
@@ -260,6 +256,9 @@ def restore_package(zip_path, target_json_path):
                 raise ValueError(f"Unexpected file in geometry archive: {member.filename}")
 
     package = read_package(target_json)
-    verify_package(package)
+    if isinstance(package, DiskPackage):
+        package.verify()
+    else:
+        verify_package_metadata(package)
     return package
 

@@ -1,0 +1,11 @@
+
+ Starting FDS ...
+
+ MPI Process      0 started on Anwir
+
+ Reading FDS input file ...
+
+
+ERROR(885): DEVC DEVC_DOOR_TIME must have coordinates, even if it is not a point quantity. (CHID: door_open)
+
+ERROR: FDS was improperly set-up - FDS stopped (CHID: door_open)

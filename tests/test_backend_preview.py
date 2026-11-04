@@ -113,6 +113,31 @@ def test_large_upload_avoids_browser_step_decoding(tiny_ifc, tmp_path):
                         timeout=10000,
                     )
                     assert page.locator("#convert-ifc").is_disabled()
+                    # Real controller handlers must never promote preview metadata
+                    # to a Quick Conversion model after state changes.
+                    for option in ("include-fill-solids", "include-review-solids"):
+                        for checked in (True, False):
+                            page.locator("#" + option).evaluate(
+                                "(node, checked) => { node.checked = checked; node.dispatchEvent(new Event('change', {bubbles:true})); }",
+                                checked,
+                            )
+                            assert page.locator("#convert-ifc").is_disabled()
+                    page.evaluate("""() => {
+                        const viewer = IfcFds.workbench.navigation.colorOverlay.viewer;
+                        const pickCandidate = viewer.pickCandidate;
+                        try {
+                            viewer.pickCandidate = () => ({object: viewer.ifcSolidGroup.children[0]});
+                            viewer.handleClick({clientX: 0, clientY: 0});
+                        } finally {
+                            viewer.pickCandidate = pickCandidate;
+                        }
+                    }""")
+                    assert page.locator("#delete-selected-ifc").is_enabled()
+                    page.locator("#delete-selected-ifc").evaluate("node => node.click()")
+                    assert page.locator("#undo-last").is_enabled()
+                    assert page.locator("#convert-ifc").is_disabled()
+                    page.locator("#undo-last").evaluate("node => node.click()")
+                    assert page.locator("#convert-ifc").is_disabled()
                     identity = page.evaluate("""() => {
                         const v = IfcFds.workbench.navigation.colorOverlay.viewer;
                         const mesh = v.ifcSolidGroup.children[0];

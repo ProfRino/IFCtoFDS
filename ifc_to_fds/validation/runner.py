@@ -3,7 +3,7 @@
 from typing import Any, List, Optional
 from ifc_to_fds.domain.validation.checkers.base import CheckerOutcome, GateChecker
 from ifc_to_fds.domain.validation.evaluator import AcceptanceEvaluator
-from ifc_to_fds.domain.validation.model import AcceptanceReport, AuditConfig, GateStatus, ValidationContext
+from ifc_to_fds.domain.validation.model import AcceptanceReport, AuditConfig, GateResult, GateStatus, ValidationContext
 from ifc_to_fds.validation.parser import parse_fds
 from ifc_to_fds.validation.checkers.syntax import FdsSyntaxChecker
 from ifc_to_fds.validation.checkers.domain import DomainChecker
@@ -19,6 +19,7 @@ from ifc_to_fds.validation.checkers.boundary import BoundaryChecker
 from ifc_to_fds.validation.checkers.mesh_resolution import MeshResolutionChecker
 from ifc_to_fds.validation.checkers.solver import SolverChecker
 from ifc_to_fds.validation.checkers.hvac import HvacNetworkChecker
+from ifc_to_fds.validation.preflight import invalid_source_solids
 
 
 class ValidationRunner:
@@ -82,8 +83,21 @@ class ValidationRunner:
         outcomes: List[CheckerOutcome] = []
         syntax_passed = True
         mesh_passed = True
+        invalid = invalid_source_solids(model) if model is not None else []
+        blocked = bool(context.config.fail_fast_on_source_errors and invalid)
         for checker in self.checkers:
-            if isinstance(checker, SolverChecker):
+            if blocked and checker.name in ("air_path", "openings", "solver"):
+                def blocked_gate(required=True):
+                    return GateResult(status=GateStatus.NOT_RUN, required=required,
+                                      reason="Source topology preflight rejected")
+                solver = checker.name == "solver"
+                outcome = CheckerOutcome(
+                    gate_name=checker.name, result=blocked_gate(required=not solver),
+                    additional_gates={"effective_geometry": blocked_gate(False)} if solver else {},
+                )
+            elif isinstance(checker, GeometryChecker):
+                outcome = checker.check(context, invalid_source=invalid)
+            elif isinstance(checker, SolverChecker):
                 outcome = checker.check(
                     context, syntax_passed=syntax_passed, mesh_passed=mesh_passed
                 )
@@ -97,4 +111,7 @@ class ValidationRunner:
                 ):
                     mesh_passed = False
             outcomes.append(outcome)
-        return self.evaluator.evaluate(context, outcomes)
+        report = self.evaluator.evaluate(context, outcomes)
+        if blocked:
+            report.metrics["source_topology_preflight_rejected"] = invalid
+        return report

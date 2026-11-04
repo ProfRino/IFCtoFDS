@@ -1,7 +1,8 @@
 """Authoritative Geometry Engine powered by IfcOpenShell OpenCASCADE kernel.
 
-Extracts meshes and reports kernel/topology failures explicitly. Extraction
-does not establish independent geometry or opening verification.
+Extracts meshes, records bounded numerical normalization and reports remaining
+kernel/topology failures explicitly. Extraction does not establish independent
+geometry or opening verification.
 
 Geometry Validation Boundary & Fire Safety Fidelity:
 ----------------------------------------------------
@@ -23,7 +24,8 @@ rejects bounding box substitution for invalid or open geometries:
    These "phantom barriers" artificially block smoke movement, alter cavity
    topology (e.g., merging or partitioning compartment cavities), and produce
    catastrophically misleading fire safety simulations.
-3. Honest Rejection: If an IFC source contains unclosed surfaces, non-manifold
+3. Honest Rejection: After auditable roundoff-seam/winding normalization, if
+   extracted geometry contains unclosed surfaces, non-manifold
    edges, zero-volume sheets, or self-intersections (such as architectural
    sample models with non-watertight coverings or stairs), the engine retains
    the raw mesh for diagnostics, marks the element as `GeometryStatus.FAILED`,
@@ -45,6 +47,7 @@ from ifc_to_fds.core.canonical import (
     GeometryStatus,
 )
 from .mesh import bounds_for_vertices, inspect_mesh_quality, as_trimesh, valid_solid
+from .normalization import normalize_source_mesh
 
 
 def create_geom_settings(linear_deflection: float = 0.0001) -> Any:
@@ -103,6 +106,42 @@ def extract_element_geometry(
         return None
 
 
+def prepare_source_mesh(mesh):
+    """Normalize only independently supplied raw triangles and retain the proof."""
+    if mesh is None:
+        return None, {"extraction_failed": True, "repair_applied": False}
+    mesh, proof = normalize_source_mesh(mesh)
+    quality = proof["result_quality"]
+    mesh.is_closed_manifold = bool(quality["is_closed_manifold"])
+    mesh.has_consistent_normals = quality["inconsistent_edges"] == 0
+    diagnostics = dict(
+        quality, vertices=len(mesh.vertices), faces=len(mesh.faces),
+        repair_applied=False, numerical_normalization_applied=proof["status"] == "NORMALIZED",
+        raw_quality=proof["raw_quality"], normalization=proof,
+    )
+    return mesh, diagnostics
+
+
+def assign_source_openings(element, ifc_file, settings):
+    for opening in element.openings:
+        source = CanonicalElement(
+            global_id=opening.opening_global_id,
+            step_id=opening.opening_step_id,
+            ifc_type="IfcOpeningElement",
+        )
+        raw = extract_element_geometry(ifc_file, source, settings)
+        opening.mesh, diagnostics = prepare_source_mesh(raw)
+        opening.bounding_box = (
+            bounds_for_vertices(opening.mesh.vertices) if opening.mesh else None
+        )
+        opening.extraction_diagnostic = opening_diagnostic(
+            opening.mesh, source.validation_notes
+        )
+        element.geometry_diagnostics.setdefault("openings", {})[
+            str(opening.opening_step_id)
+        ] = diagnostics
+
+
 @operation("IFC_GEOMETRY")
 def process_model_geometry(
     canonical_model: CanonicalModel,
@@ -145,16 +184,17 @@ def process_model_geometry(
         mesh = shapes.pop(elem.step_id, None) or extract_element_geometry(
             ifc_file, elem, settings
         )
+        mesh, elem.geometry_diagnostics = prepare_source_mesh(mesh)
+        elem.mesh = mesh
+        elem.bounding_box = None
         if mesh and mesh.vertices:
-            elem.mesh = mesh
             bbox = bounds_for_vertices(mesh.vertices)
             elem.bounding_box = bbox
             if bbox:
                 all_verts.append([bbox.xmin, bbox.ymin, bbox.zmin])
                 all_verts.append([bbox.xmax, bbox.ymax, bbox.zmax])
 
-            quality = inspect_mesh_quality(mesh)
-            elem.geometry_diagnostics = dict(quality, vertices=len(mesh.vertices), faces=len(mesh.faces), repair_applied=False)
+            quality = elem.geometry_diagnostics["normalization"]["result_quality"]
             mesh.is_closed_manifold = bool(quality["is_closed_manifold"])
             mesh.has_consistent_normals = quality["inconsistent_edges"] == 0
             if valid_solid(mesh):
@@ -173,26 +213,16 @@ def process_model_geometry(
                 # explicit in the inventory and flagged as GeometryStatus.FAILED so the
                 # downstream verification gates reject the model cleanly.
                 elem.geometry_status = GeometryStatus.FAILED
-                elem.validation_notes.append(f"Invalid source solid (no repair applied): {quality}")
-            for opening in elem.openings:
-                opening_elem = CanonicalElement(
-                    global_id=opening.opening_global_id,
-                    step_id=opening.opening_step_id,
-                    ifc_type="IfcOpeningElement",
-                )
-                opening.mesh = extract_element_geometry(
-                    ifc_file, opening_elem, settings
-                )
-                if opening.mesh:
-                    opening.bounding_box = bounds_for_vertices(opening.mesh.vertices)
-                opening.extraction_diagnostic = opening_diagnostic(
-                    opening.mesh, opening_elem.validation_notes
+                elem.validation_notes.append(
+                    "Invalid extracted solid after bounded numerical normalization: "
+                    f"{quality}; {elem.geometry_diagnostics['normalization']['reason']}"
                 )
         else:
             elem.geometry_status = GeometryStatus.FAILED
             if elem.has_3d_geometry and elem.mapping_status != MappingStatus.DEVIATED:
                 elem.mapping_status = MappingStatus.UNSUPPORTED
                 elem.validation_notes.append("No mesh generated by OpenCASCADE kernel.")
+        assign_source_openings(elem, ifc_file, settings)
 
     if all_verts:
         canonical_model.model_bounds = bounds_for_vertices(all_verts)
@@ -212,9 +242,9 @@ def opening_diagnostic(mesh, notes):
 def process_reference_geometry(model, ifc_file):
     """Recompute audit geometry from its reopened source, without converter cache.
 
-    The strict reader never uses converter repairs or bounding-box substitutes.
-    A fresh native iterator avoids constructing a new geometry kernel for every
-    product; missing native outputs still receive individual create_shape calls.
+    The reader never uses converter meshes/proofs/cache or bounding-box
+    substitutes. Numerical normalization is independently recomputed from a
+    fresh native iterator; missing native outputs receive create_shape calls.
     """
     import os
 
@@ -225,28 +255,13 @@ def process_reference_geometry(model, ifc_file):
 
     def assign(element, mesh):
         nonlocal completed
+        mesh, element.geometry_diagnostics = prepare_source_mesh(mesh)
         element.mesh = mesh
         element.bounding_box = bounds_for_vertices(mesh.vertices) if mesh else None
-        element.geometry_diagnostics = (
-            dict(inspect_mesh_quality(mesh), vertices=len(mesh.vertices), faces=len(mesh.faces), repair_applied=False)
-            if mesh else {"extraction_failed": True, "repair_applied": False}
-        )
         element.geometry_status = (
             GeometryStatus.VALID if mesh and valid_solid(mesh) else GeometryStatus.FAILED
         )
-        for opening in element.openings:
-            source = CanonicalElement(
-                global_id=opening.opening_global_id,
-                step_id=opening.opening_step_id,
-                ifc_type="IfcOpeningElement",
-            )
-            opening.mesh = extract_element_geometry(ifc_file, source, settings)
-            opening.bounding_box = (
-                bounds_for_vertices(opening.mesh.vertices) if opening.mesh else None
-            )
-            opening.extraction_diagnostic = opening_diagnostic(
-                opening.mesh, source.validation_notes
-            )
+        assign_source_openings(element, ifc_file, settings)
         completed += 1
         if completed % 16 == 0 or completed == total:
             progress("IFC_GEOMETRY", "RUNNING", completed=completed, total=total)

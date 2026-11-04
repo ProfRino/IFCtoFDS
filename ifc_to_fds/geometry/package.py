@@ -1,24 +1,11 @@
 """Portable, checksummed geometry evidence. Audit never trusts exporter memory."""
 
-import hashlib
-import json
 from ifc_to_fds.core.canonical import SCHEMA_VERSION, TriangleMesh, MappingStrategy
 from ifc_to_fds.geometry.mesh import valid_solid
 from ifc_to_fds.validation.metrics import compare_solids
 from ifc_to_fds.validation.acceptance import GateResult, GateStatus, Finding, Severity
-
-
-def digest(value):
-    return hashlib.sha256(
-        json.dumps(
-            value, sort_keys=True, separators=(",", ":"), allow_nan=False
-        ).encode()
-    ).hexdigest()
-
-
-def seal(package):
-    value = {k: v for k, v in package.items() if k != "sha256"}
-    return {**value, "sha256": digest(value)}
+from .package_integrity import digest as digest, seal, verify_package_metadata
+from .storage import DiskPackage
 
 
 def build_package(model):
@@ -53,24 +40,10 @@ def build_package(model):
 
 
 def verify_package(package):
-    from .storage import DiskPackage
-
     if isinstance(package, DiskPackage):
         package.verify()
-        package = package.index
-    if (
-        not isinstance(package, dict)
-        or package.get("sha256") != seal(package)["sha256"]
-    ):
-        raise ValueError("Geometry package checksum mismatch")
-    if (
-        package.get("schema_version") not in (SCHEMA_VERSION, "0.4.0")
-        or package.get("units") != "METRE"
-        or package.get("coordinate_frame") != "COMMON_WORLD"
-    ):
-        raise ValueError("Unsupported geometry package schema/units/frame")
-    if not isinstance(package.get("elements"), dict):
-        raise ValueError("Geometry package element index missing")
+    else:
+        verify_package_metadata(package)
 
 
 def metrics_pass(metrics, config):
@@ -114,11 +87,8 @@ def audit_package(model, package, report, config):
         gate.reason = "No saved geometry package supplied; metadata is insufficient"
         return
     try:
-        from .storage import DiskPackage
-
         if isinstance(package, DiskPackage):
             package.verify_index()
-            verify_package(package.index)
         else:
             verify_package(package)
     except (ValueError, TypeError, OSError) as exc:

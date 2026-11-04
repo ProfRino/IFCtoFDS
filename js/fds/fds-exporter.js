@@ -9,6 +9,10 @@
         var openingThickening = Math.max(0, Number(options.openingThickening) || 0);
         var openingVoxelPolicy = normalizeOpeningVoxelPolicy(options.openingVoxelPolicy);
         var elements = exportableElements(ifcScene, options);
+        if (ifcScene && ifcScene.backendPreview) {
+            throw geometryInputError(elements[0] || (ifcScene.elements || [])[0],
+                'Backend preview metadata has no export geometry. Use Verified Conversion for this source.');
+        }
         var bounds = paddedBounds(boundsForElements(elements), Math.max(0.5, voxelSize));
         var lines = [];
 
@@ -362,17 +366,21 @@
         var verts = [];
         var faces = [];
         var id = allocatedId || cleanId(element.name, index);
-        if (element.exportGeometryComplete === false) throw new Error('Incomplete opening processing: ' + element.name);
+        if (element.exportGeometryComplete === false) throw geometryInputError(element, 'Incomplete opening processing: ' + element.name);
         var targetMesh = element.geomExportMesh || element.displayMesh || element.mesh;
+        if (!targetMesh || !Array.isArray(targetMesh.vertices) || !targetMesh.vertices.length ||
+            !Array.isArray(targetMesh.faces) || !targetMesh.faces.length) {
+            throw geometryInputError(element, 'A complete, nonempty triangle mesh is required for GEOM export.');
+        }
         targetMesh.vertices.forEach(function (v) {
-            if (v.length !== 3 || !v.every(Number.isFinite)) throw new Error('Non-finite GEOM vertex: ' + element.name);
+            if (!Array.isArray(v) || v.length !== 3 || !v.every(Number.isFinite)) throw geometryInputError(element, 'GEOM vertices must be finite [x,y,z] coordinates.');
             // GEOM vertices must retain binary64 coordinates. Six decimal rounding
             // collapses short edges produced by opening booleans in georeferenced IFC.
             verts.push(String(Number(v[0])), String(Number(v[1])), String(Number(v[2])));
         });
         targetMesh.faces.forEach(function (face) {
-            if (face.length !== 3 || !face.every(function (i) { return Number.isInteger(i) && i >= 0 && i < targetMesh.vertices.length; })) {
-                throw new Error('Invalid GEOM triangle index: ' + element.name);
+            if (!Array.isArray(face) || face.length !== 3 || !face.every(function (i) { return Number.isInteger(i) && i >= 0 && i < targetMesh.vertices.length; })) {
+                throw geometryInputError(element, 'GEOM faces must be triangles with valid integer vertex indices.');
             }
             var a = targetMesh.vertices[face[0]], b = targetMesh.vertices[face[1]], c = targetMesh.vertices[face[2]];
             var normal = cross(subtractVector(b, a), subtractVector(c, a));
@@ -381,7 +389,7 @@
             if (normal[0] === 0 && normal[1] === 0 && normal[2] === 0) return;
             faces.push(face[0] + 1, face[1] + 1, face[2] + 1, 1);
         });
-        if (!faces.length) throw new Error('GEOM has no non-degenerate triangles: ' + element.name);
+        if (!faces.length) throw geometryInputError(element, 'GEOM mesh contains no nondegenerate triangles.');
 
         return [
             formatIfcSourceComment(element, 'GEOM', id),
@@ -390,6 +398,15 @@
             wrapArray('      FACES=', faces, 16),
             ' /'
         ].join('\n');
+    }
+
+    function geometryInputError(element, reason) {
+        var identity = element && (element.entityKey || element.stepId || element.name);
+        var error = new Error(reason + (identity ? ' Element: ' + identity + '.' : ''));
+        error.name = 'ExportGeometryInputError';
+        error.stage = 'serialization';
+        error.entityId = element && element.stepId != null ? element.stepId : null;
+        return error;
     }
 
     function strategyForElement(mode, element, options) {

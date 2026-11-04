@@ -6,6 +6,8 @@ from ifc_to_fds.domain.mep.hvac import DuctSpec, HvacDuct, HvacNetworkPlan, Hvac
 from ifc_to_fds.domain.mapping.enums import MappingStrategy
 from ifc_to_fds.domain.scope import ScopeDecision
 
+PORT_POSITION_TOLERANCE_M = 0.001
+
 
 def build_hvac_network(model):
     selected = [e for e in model.elements if e.mapping_strategy == MappingStrategy.HVAC
@@ -41,7 +43,7 @@ def build_hvac_network(model):
         if a in ports and b in ports:
             if edge.relation_type != "EXPLICIT_IFC":
                 raise ValueError("HVAC topology requires explicit IFC port relationships")
-            if math.dist(ports[a].world_position, ports[b].world_position) > 0.001:
+            if math.dist(ports[a].world_position, ports[b].world_position) > PORT_POSITION_TOLERANCE_M:
                 raise ValueError("Connected HVAC ports disagree in world position")
             parent[find(b)] = find(a)
     groups = {}
@@ -88,6 +90,12 @@ def build_hvac_network(model):
         length = spec.length_m if spec.length_m is not None else distance
         if length <= 0 or length + 0.001 < distance:
             raise ValueError("HVAC length must be positive and cannot be shorter than the port chord")
+        ordered_ports = e.ports
+        if len(e.ports) == 2:
+            def port_flow_order(p):
+                direction = (getattr(p, "flow_direction", None) or "").upper()
+                return 0 if direction == "SINK" else 1 if direction == "SOURCE" else 0.5
+            ordered_ports = sorted(e.ports, key=port_flow_order)
         ducts.append(HvacDuct(id=duct_ids[e.entity_key], entity_key=e.entity_key,
-                              node_ids=tuple(port_node[p.port_key] for p in e.ports), length_m=length, spec=spec))
+                              node_ids=tuple(port_node[p.port_key] for p in ordered_ports), length_m=length, spec=spec))
     return HvacNetworkPlan(nodes=sorted(nodes, key=lambda n: n.id), ducts=sorted(ducts, key=lambda d: d.id))

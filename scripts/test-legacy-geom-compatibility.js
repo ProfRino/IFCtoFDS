@@ -19,8 +19,10 @@ assert.doesNotMatch(record.id,/[<>:"/\\|?*]/,'GEOM ID must be a legal bingeom fi
 assert.equal(record.faces.length,4*4,'Only exactly zero-area triangles should be removed');
 assert.ok(text.includes("NAME='Basic Wall:AR-Wall-220'"),'Original IFC name must remain in provenance');
 const broken={...element,mesh:{vertices,faces:[[0,1,100]]}};
-assert.throws(()=>exporter.exportFromIfcScene({elements:[broken]},{mode:'geom'}),/Invalid GEOM triangle index/);
-assert.throws(()=>exporter.exportFromIfcScene({elements:[{...element,mesh:{vertices,faces:[[0,0,1]]}}]},{mode:'geom'}),/no non-degenerate/);
+assert.throws(() => exporter.exportFromIfcScene({elements:[broken]},{mode:'geom'}),
+    {name:'ExportGeometryInputError', stage:'serialization', entityId:2106, message:/valid integer vertex indices/});
+assert.throws(() => exporter.exportFromIfcScene({elements:[{...element,mesh:{vertices,faces:[[0,0,1]]}}]},{mode:'geom'}),
+    {name:'ExportGeometryInputError', stage:'serialization', entityId:2106, message:/no nondegenerate triangles/});
 const rebased="! IFC_COORDINATE_REBASE X_OFFSET=593000 Y_OFFSET=1198000 Z_OFFSET=10 /\n"+
     "&MESH IJK=2,2,2, XB=0,2,0,2,0,2 /\n&OBST ID='wall', XB=0,1,0,1,0,1 /\n"+
     "&GEOM ID='triangle', VERTS=0,0,0,1,0,0,0,1,0, FACES=1,2,3,1 /";

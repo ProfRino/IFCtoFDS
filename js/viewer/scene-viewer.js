@@ -1924,6 +1924,9 @@
 
     function stepIdsForMesh(userData) {
         var ids = [];
+        if (userData.type === 'IFC' && userData.stepId) {
+            ids.push(String(userData.stepId).replace(/^#/, ''));
+        }
         if (userData.ifcSource && userData.ifcSource.stepId) {
             ids.push(String(userData.ifcSource.stepId).replace(/^#/, ''));
         }

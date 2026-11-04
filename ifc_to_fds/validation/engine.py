@@ -12,6 +12,8 @@ from .acceptance import (
     Severity,
 )
 from .parser import parse_fds
+from .effective import check_opening_grid_alignment
+from .preflight import comparison_summary, invalid_source_solids
 from .metrics import (
     compare_solids,
     opening_residual,
@@ -260,20 +262,13 @@ def run_independent_validation(
         if e.scope_decision != ScopeDecision.OUT_OF_SCOPE
         and e.mapping_strategy in (MappingStrategy.OBST, MappingStrategy.GEOM)
     )
-    bad_source = (
-        [
-            e.entity_key
-            for e in model.elements
-            if e.scope_decision
-            in (ScopeDecision.IN_SCOPE, ScopeDecision.BOUNDARY_RETAINED)
-            and e.role == "PHYSICAL"
-            and e.mesh
-            and not valid_solid(e.mesh)
-        ]
-        if config.fail_fast_on_source_errors
-        else []
-    )
+    invalid_source_meshes = invalid_source_solids(model)
+    bad_source = invalid_source_meshes if config.fail_fast_on_source_errors else []
     stop_solid_checks = bool(bad_source)
+    skip_local_comparisons = stop_solid_checks and not config.collect_partial_geometry_evidence
+    comparison_attempts, completed_comparisons = set(), set()
+    comparison_deviations, comparison_failures, comparison_inconclusive = set(), set(), set()
+    skipped_comparisons = set()
     if stop_solid_checks:
         report.metrics["source_topology_preflight_rejected"] = bad_source
         report.gates["openings"] = GateResult(
@@ -287,7 +282,9 @@ def run_independent_validation(
         report.gates[
             "geometry"
         ].reason = (
-            "Source topology defects confirmed; remaining solid comparisons not run"
+            "Source topology defects confirmed; "
+            + ("remaining solid comparisons not run" if skip_local_comparisons else
+               "partial local comparisons enabled; dependent global checks not run")
         )
     reference_solids = None
     exported_solids = None
@@ -459,7 +456,8 @@ def run_independent_validation(
                 report.metrics.setdefault("source_geometry_diagnostics", {})[key] = dict(
                     step_id=e.step_id, global_id=e.global_id, ifc_type=e.ifc_type,
                     name=e.name, quality=quality, representations=e.source_representations,
-                    remediation="Re-export a closed, consistently oriented solid from the BIM source; no bounding-box repair was applied.",
+                    extraction_diagnostics=e.geometry_diagnostics,
+                    remediation="Inspect raw extraction/normalization evidence and the source solid/openings. No bounding-box replacement was applied.",
                 )
                 detail += f"; source mesh quality={quality}"
                 report.element_statuses[key] = "UNSUPPORTED"
@@ -510,13 +508,16 @@ def run_independent_validation(
                 key,
             )
             continue
-        if stop_solid_checks:
+        if skip_local_comparisons:
             report.element_statuses[key] = "INCONCLUSIVE"
+            skipped_comparisons.add(key)
             continue
+        comparison_attempts.add(key)
         try:
             from ifc_to_fds.mapping.boundary import target_mesh
 
             metrics = compare_solids(target_mesh(e), meshes)
+            completed_comparisons.add(key)
             report.metrics[key] = metrics
             fail = (
                 metrics["surface_distance_m"] > config.surface_tolerance_m
@@ -525,23 +526,31 @@ def run_independent_validation(
                 or metrics["reference_components"] != metrics["output_components"]
             )
             if fail:
+                comparison_deviations.add(key)
                 finding("geometry", f"Geometric deviation: {metrics}", key)
                 report.deviated_count += 1
                 report.element_statuses[key] = "DEVIATED"
             elif not metrics["surface_proven"]:
+                comparison_inconclusive.add(key)
                 unknown("geometry", f"Full surface distance not proven for {key}")
                 report.element_statuses[key] = "INCONCLUSIVE"
             else:
                 report.matched_count += 1
                 report.element_statuses[key] = "MATCHED"
         except ValueError as exc:
+            comparison_failures.add(key)
             if hasattr(exc, "evidence"):
                 report.metrics.setdefault(key, {})["self_intersection"] = exc.evidence
             finding("geometry", f"{key}: invalid solid comparison: {exc}", key)
             report.element_statuses[key] = "DEVIATED"
         except Exception as exc:
+            comparison_inconclusive.add(key)
             unknown("geometry", f"{key}: solid comparison failed: {exc}")
             report.element_statuses[key] = "INCONCLUSIVE"
+        # Opening/enclosure proof depends on the complete package. Partial solid
+        # measurements never authorize these aggregate checks after preflight rejection.
+        if stop_solid_checks:
+            continue
         for opening in e.openings:
             if not opening.mesh or not valid_solid(opening.mesh):
                 unknown(
@@ -594,6 +603,7 @@ def run_independent_validation(
                     source_residual=source_residual,
                     output_residual=output_residual,
                     passage=passage,
+                    grid_alignment=check_opening_grid_alignment(opening.mesh, e.bounding_box, parsed),
                 )
             except Exception as exc:
                 unknown("openings", f"{opening.opening_global_id}: {exc}", key)
@@ -623,20 +633,22 @@ def run_independent_validation(
         )
     if model.mep_graph.isolated_element_ids:
         unknown("mep", "Isolated MEP elements require source connectivity review")
+    summary, export_coverage = comparison_summary(
+        parsed, primitives, invalid_source_meshes,
+        mode="FAIL_FAST" if skip_local_comparisons else "PARTIAL" if stop_solid_checks else "FULL",
+        verified=report.matched_count,
+        attempted=comparison_attempts, completed=completed_comparisons,
+        skipped=skipped_comparisons, failed=comparison_failures,
+        inconclusive=comparison_inconclusive, deviated=comparison_deviations,
+    )
+    report.metrics["geometry_comparison"] = summary
     report.coverage = dict(
         inventory=len(model.elements),
         geometry=report.matched_count,
         missing=report.missing_count,
         openings=opening_count,
         mep=model.mep_graph.coverage,
-        fds_export=dict(
-            entities=len(primitives),
-            primitives=len(parsed.primitives),
-            obst=sum(p.kind == "OBST" for p in parsed.primitives),
-            geom=sum(p.kind == "GEOM" for p in parsed.primitives),
-            verified_entities=report.matched_count,
-            comparisons_skipped_for_source_errors=stop_solid_checks,
-        ),
+        fds_export=export_coverage,
     )
     from ifc_to_fds.domain.validation.model import ValidationContext
     from .checkers.structural import StructuralCompletenessChecker

@@ -1,3 +1,6 @@
+import os
+import pytest
+
 from ifc_to_fds.mapping.exporter import serialize_fds
 from ifc_to_fds.validation.effective import effective_obstructions
 
@@ -62,3 +65,30 @@ def test_unsupported_effective_syntax_and_bad_indices_never_pass(box_model):
     tie = text.replace("XB=0,2,0,1,0,3", "XB=0.1,2,0,1,0,3")
     assert tie != text
     assert effective_obstructions(tie, smv).status == "INCONCLUSIVE"
+
+
+@pytest.mark.solver
+def test_fds_effective_obstruction_crossing_mesh_boundary(tmp_path):
+    from ifc_to_fds.validation.acceptance import AuditConfig
+    from ifc_to_fds.validation.solver import solver_gates
+
+    text = (
+        "&HEAD CHID='multieff' /\n&TIME T_END=0 /\n"
+        "&MESH ID='west', IJK=10,10,10, XB=0,1,0,1,0,1 /\n"
+        "&MESH ID='east', IJK=10,10,10, XB=1,2,0,1,0,1 /\n"
+        "&OBST ID='cross', XB=0.6,1.4,0.2,0.5,0.2,0.8 /\n"
+        "&OBST ID='east_only', XB=1.6,1.8,0.2,0.5,0.2,0.8 /\n&TAIL /\n"
+    )
+    solver, effective = solver_gates(text, AuditConfig(
+        solver_executable=os.environ["IFCFDS_SOLVER"],
+        solver_evidence_directory=str(tmp_path),
+    ))
+    assert solver.status == "PASS", solver.reason
+    assert effective.status == "PASS", effective.reason
+    pieces = effective.evidence["mesh_obstructions"]
+    assert pieces["west"]["cross"] == [.6, 1, .2, .5, .2, .8]
+    assert pieces["east"]["cross"] == [1, 1.4, .2, .5, .2, .8]
+    assert effective.evidence["effective_bounds"]["cross"] == [.6, 1.4, .2, .5, .2, .8]
+    smv = next(tmp_path.glob("*/*.smv")).read_text()
+    altered = smv.replace("! cross", "! other", 1)
+    assert effective_obstructions(text, altered).status == "FAIL"

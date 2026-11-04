@@ -1,0 +1,41 @@
+
+ Starting FDS ...
+
+ MPI Process      0 started on Anwir
+
+ Reading FDS input file ...
+
+
+ Fire Dynamics Simulator
+
+ Current Date     : November  4, 2026  12:46:54
+ Revision         : FDS-6.11.1-0-gff928db-release
+ Revision Date    : Thu Jul 9 17:24:07 2026 -0400
+ Compiler         : Intel(R) Fortran Compiler for applications running on Intel(R) 64, Version 2025.2.0 Build 20250605
+ Compilation Date : Fri-07/10/2026-01:19-PM
+
+ Number of MPI Processes:  1
+ Number of OpenMP Threads: 1
+
+ MPI version: 4.1
+ MPI library version: Intel(R) MPI Library 2021.16 for Windows* OS
+
+ Hypre library version: v3.0.0
+ Sundials library version: v7.5.0
+
+ Job TITLE        : 
+ Job ID string    : door_closed
+
+ Time Step:       1, Simulation Time:   0.15966 s
+ Time Step:       2, Simulation Time:   0.31933 s
+ Time Step:       3, Simulation Time:   0.47899 s
+ Time Step:       4, Simulation Time:   0.63866 s
+ Time Step:       5, Simulation Time:   0.79832 s
+ Time Step:       6, Simulation Time:   0.95799 s
+ Time Step:       7, Simulation Time:   1.11765 s
+ Time Step:       8, Simulation Time:   1.27732 s
+ Time Step:       9, Simulation Time:   1.43698 s
+ Time Step:      10, Simulation Time:   1.59665 s
+ Time Step:      13, Simulation Time:   2.00000 s
+
+STOP: FDS completed successfully (CHID: door_closed)

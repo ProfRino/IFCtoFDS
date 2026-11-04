@@ -10,6 +10,19 @@ from ifc_to_fds.geometry.mesh import box_mesh
 from ifc_to_fds.mapping.policy import plan_mapping
 
 
+@pytest.fixture(autouse=True)
+def isolate_automatic_solver_execution(request, monkeypatch):
+    """Keep unit/API workers independent of external software on the test host.
+
+    Spawned conversion workers inherit this operator option. Explicit solver
+    paths (e.g. the timeout adapter fixture) remain usable; real solver tests
+    opt into their installed FDS through the existing solver marker.
+    """
+    if request.node.get_closest_marker("solver") is None:
+        monkeypatch.setenv("IFCFDS_SOLVER_AUTODISCOVERY", "0")
+        monkeypatch.delenv("IFCFDS_SOLVER", raising=False)
+
+
 @pytest.fixture
 def box_model():
     source = SourceMetadata(

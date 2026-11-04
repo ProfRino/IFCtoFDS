@@ -7,12 +7,15 @@ from ifc_to_fds.validation.acceptance import AuditConfig
 from ifc_to_fds.validation.solver import solver_gates
 
 
-def test_missing_solver_never_passes(box_model, monkeypatch):
-    monkeypatch.setattr("ifc_to_fds.validation.solver.shutil.which", lambda _: None)
+def test_missing_solver_never_passes(box_model, monkeypatch, tmp_path):
+    monkeypatch.setenv("IFCFDS_SOLVER_AUTODISCOVERY", "1")
+    monkeypatch.setattr("ifc_to_fds.validation.solver_discovery.PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr("ifc_to_fds.validation.solver_discovery.shutil.which", lambda _: None)
     text, _ = serialize_fds(box_model)
     solver, effective = solver_gates(text, AuditConfig())
     assert solver.status == "INCONCLUSIVE"
     assert effective.status == "INCONCLUSIVE"
+    assert solver.evidence["resolution"]["source"] == "not-found"
 
 
 @pytest.mark.solver

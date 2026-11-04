@@ -309,6 +309,9 @@ def _serialize_planned_model(model, cell_size, hvac_network):
             continue
         if strategy in (MappingStrategy.NONE, MappingStrategy.EXCLUDED_SCOPE):
             continue
+        if strategy == MappingStrategy.HVAC:
+            # The network adapter emits these elements as operational records.
+            continue
         if strategy in (MappingStrategy.GEOM, MappingStrategy.OBST) and (
             not elem.mesh or not valid_solid(elem.mesh)
         ):

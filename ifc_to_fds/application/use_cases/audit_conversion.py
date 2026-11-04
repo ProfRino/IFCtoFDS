@@ -37,12 +37,15 @@ class AuditConversionUseCase:
         configuration: Optional[Dict[str, Any]] = None,
         geometry_package: Optional[Dict[str, Any]] = None,
     ) -> Tuple[CanonicalModel, MappingManifest, AcceptanceReport]:
-        configuration = (
-            configuration if configuration is not None else manifest.configuration
-        )
+        if configuration is None:
+            # An artifact can reproduce placement and mapping, but cannot set
+            # the tolerance or choose an executable for its own audit.
+            manifest_config = manifest.configuration or {}
+            configuration = {k: v for k, v in manifest_config.items() if k != "audit"}
         configuration = validate_configuration(configuration)
-        if "mep_graph" not in configuration and "mep_graph" in manifest.configuration:
-            configuration["mep_graph"] = manifest.configuration["mep_graph"]
+        manifest_config = manifest.configuration or {}
+        if "mep_graph" not in configuration and "mep_graph" in manifest_config:
+            configuration["mep_graph"] = manifest_config["mep_graph"]
         source_start = perf_counter()
         model = prepare_model(paths, configuration, reference=True)
         source_done = perf_counter()

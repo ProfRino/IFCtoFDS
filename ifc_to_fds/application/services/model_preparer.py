@@ -31,16 +31,10 @@ def prepare_model(
         raise ValueError(f"Invalid coordinate_frame: {coord_frame!r}, must be 'WORLD' or 'REBASED'")
 
     if scope_raw.get("bounding_box") and has_rebase:
+        if coord_frame is None:
+            raise ValueError("scope.coordinate_frame is required for explicit bounds when the IFC model is rebased")
         raw_box = BoundingBox.model_validate(scope_raw["bounding_box"])
-        should_rebase = False
         if coord_frame == "WORLD":
-            should_rebase = True
-        elif coord_frame == "REBASED":
-            should_rebase = False
-        elif abs(raw_box.xmin) > 1000.0 or abs(raw_box.ymin) > 1000.0:
-            should_rebase = True
-
-        if should_rebase:
             scope_raw["coordinate_frame"] = "REBASED"
             scope_raw["bounding_box"] = BoundingBox(
                 xmin=raw_box.xmin - dx,
@@ -66,15 +60,9 @@ def prepare_model(
             raise ValueError(
                 f"Invalid simulation_domain_coordinate_frame: {domain_frame!r}, must be 'WORLD' or 'REBASED'"
             )
-        should_rebase_domain = False
-        if domain_frame == "WORLD":
-            should_rebase_domain = True
-        elif domain_frame == "REBASED":
-            should_rebase_domain = False
-        elif has_rebase and (abs(domain_box.xmin) > 1000.0 or abs(domain_box.ymin) > 1000.0):
-            should_rebase_domain = True
-
-        if has_rebase and should_rebase_domain:
+        if has_rebase and domain_frame is None:
+            raise ValueError("simulation_domain_coordinate_frame is required when the IFC model is rebased")
+        if has_rebase and domain_frame == "WORLD":
             domain_box = BoundingBox(
                 xmin=domain_box.xmin - dx,
                 xmax=domain_box.xmax - dx,

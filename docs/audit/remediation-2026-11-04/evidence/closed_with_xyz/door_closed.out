@@ -1,0 +1,396 @@
+
+ Fire Dynamics Simulator
+
+ Current Date     : November  4, 2026  12:46:54
+ Revision         : FDS-6.11.1-0-gff928db-release
+ Revision Date    : Thu Jul 9 17:24:07 2026 -0400
+ Compiler         : Intel(R) Fortran Compiler for applications running on Intel(R) 64, Version 2025.2.0 Build 20250605
+ Compilation Date : Fri-07/10/2026-01:19-PM
+
+ Number of MPI Processes:  1
+ Number of OpenMP Threads: 1
+
+ MPI version: 4.1
+ MPI library version: Intel(R) MPI Library 2021.16 for Windows* OS
+
+ Hypre library version: v3.0.0
+ Sundials library version: v7.5.0
+
+ Job TITLE        : 
+ Job ID string    : door_closed
+
+
+ Grid Dimensions, Mesh     1
+
+   Cells in the X Direction            10
+   Cells in the Y Direction            10
+   Cells in the Z Direction            10
+   Number of Grid Cells              1000
+
+
+ Physical Dimensions, Mesh     1
+
+   Length (m)                       1.000
+   Width  (m)                       1.000
+   Height (m)                       1.000
+
+ Miscellaneous Parameters
+
+   Total Number of Grid Cells        1000
+   Maximum Cell Aspect Ratio        1.000
+   Initial Time Step (s)            0.160
+   CFL Velocity Norm                    2
+   Simulation Start Time (s)          0.0
+   Simulation End Time (s)            2.0
+   Background Pressure (Pa)     101325.00
+   Ambient Temperature (C)          20.00
+
+   3D Cartesian
+   VLES Calculation
+   Eddy Viscosity Model:  Deardorff (C_DEARDORFF = 0.10)
+   Surface INERT Eddy Viscosity Model:  WALE (C_WALE = 0.60)
+   Turbulent Prandtl Number:         0.50
+   Turbulent Schmidt Number:         0.50
+
+
+ Pressure solver information
+
+   Solver:                            FFT
+   Velocity tolerance (m/s):    5.000E-02
+   Press eqn res tol (1/s^2):   2.000E+03
+   Max pressure iterations:            10
+
+
+ Background Stratification
+
+      Z (m)     P_0 (Pa)    TMP_0 (C)
+   ------------------------------------
+        0.95    101313.86     20.00
+        0.85    101315.03     20.00
+        0.75    101316.21     20.00
+        0.65    101317.38     20.00
+        0.55    101318.55     20.00
+        0.45    101319.72     20.00
+        0.35    101320.90     20.00
+        0.25    101322.07     20.00
+        0.15    101323.24     20.00
+        0.05    101324.41     20.00
+
+
+ Mass Fraction Transformation Matrix to Convert Species Mixtures (Columns) to Primitive Species (Rows)
+
+                         AIR     
+   NITROGEN              0.762470
+   OXYGEN                0.230997
+   CARBON DIOXIDE        0.000591
+   WATER VAPOR           0.005941
+
+
+ Primitive Species Information
+
+   NITROGEN
+   Gas Species
+   Molecular Weight (g/mol)                28.01340
+   Ambient Density (kg/m^3)                1.165
+           Enthalpy of Formation (J/kg)  0.000E+00
+
+   OXYGEN
+   Gas Species
+   Molecular Weight (g/mol)                31.99880
+   Ambient Density (kg/m^3)                1.330
+           Enthalpy of Formation (J/kg)  0.000E+00
+
+   CARBON DIOXIDE
+   Gas Species
+   Molecular Weight (g/mol)                44.00950
+   Ambient Density (kg/m^3)                1.830
+           Enthalpy of Formation (J/kg) -8.941E+06
+
+   WATER VAPOR
+   Gas Species
+   Molecular Weight (g/mol)                18.01528
+   Ambient Density (kg/m^3)                0.749
+           Enthalpy of Formation (J/kg) -1.342E+07
+
+
+ Tracked (Lumped) Species Information
+
+   AIR
+   Molecular Weight (g/mol)            28.75198
+   Ambient Density (kg/m^3)            1.195
+   Initial Mass Fraction               1.000
+   Enthalpy of Formation (J/kg)     -8.504E+04
+
+   Sub Species                    Mass Fraction     Mole Fraction
+   NITROGEN                       7.624699E-01      7.825727E-01
+   OXYGEN                         2.309974E-01      2.075588E-01
+   CARBON DIOXIDE                 5.914650E-04      3.864118E-04
+   WATER VAPOR                    5.941209E-03      9.482037E-03
+ 
+     Viscosity (kg/m/s) Ambient,  293 K:  1.796E-05
+                                  500 K:  2.612E-05
+                                 1000 K:  4.125E-05
+                                 1500 K:  5.371E-05
+                                 2000 K:  6.476E-05
+   Therm. Cond. (W/m/K) Ambient,  293 K:  2.556E-02
+                                  500 K:  3.814E-02
+                                 1000 K:  6.686E-02
+                                 1500 K:  9.249E-02
+                                 2000 K:  1.153E-01
+        Enthalpy (J/kg) Ambient,  293 K: -9.012E+04
+                                  500 K:  1.222E+05
+                                 1000 K:  6.721E+05
+                                 1500 K:  1.270E+06
+                                 2000 K:  1.896E+06
+    Spec. Heat (J/kg/K) Ambient,  293 K:  1.016E+03
+                                  500 K:  1.042E+03
+                                 1000 K:  1.156E+03
+                                 1500 K:  1.229E+03
+                                 2000 K:  1.270E+03
+   Diff. Coeff. (m^2/s) Ambient,  293 K:  1.991E-05
+                                  500 K:  4.961E-05
+                                 1000 K:  1.580E-04
+                                 1500 K:  3.095E-04
+                                 2000 K:  4.984E-04
+     Gibbs Energy Amb. (kJ/mol),  293 K: -5.873E+01
+                                  500 K: -1.007E+02
+                                 1000 K: -2.117E+02
+                                 1500 K: -3.312E+02
+                                 2000 K: -4.568E+02
+
+
+ Material Information
+
+
+ Surface Conditions
+
+   0 INERT (DEFAULT)
+
+   1 OPEN
+     Passive Vent to Atmosphere
+
+   2 MIRROR
+     Symmetry Plane
+
+   3 INTERPOLATED
+
+   4 PERIODIC
+
+   5 HVAC
+
+   6 MASSLESS TRACER
+
+   7 DROPLET
+
+   8 MASSLESS TARGET
+
+   9 PERIODIC FLOW ONLY
+
+
+ Lagrangian Particle Classes
+
+
+ Cut-off Density and Temperature
+
+    Minimum Temperature:  -218.3 C
+    Maximum Temperature:  2726.8 C
+    Minimum Density:  1.000E-02 kg/m3
+    Maximum Density:  1.000E+02 kg/m3
+
+
+ Device Information
+
+   1 ID: DEVC_DOOR_TIME
+     QUANTITY: TIME
+     Coordinates (X,Y,Z):    1.000000E-01    1.000000E-01    1.000000E-01
+     TEMPORAL STATISTIC: TIME AVERAGE
+
+
+ Radiation Model Information
+
+   Number of control angles  104
+   Time step increment         3
+   Angle increment             5
+   Theta band N_phi   Solid angle
+     1:        4     0.120
+     2:       12     0.114
+     3:       16     0.127
+     4:       20     0.120
+     5:       20     0.120
+     6:       16     0.127
+     7:       12     0.114
+     8:        4     0.120
+   Using gray gas absorption.
+   Mean beam length  1.000E-01 m
+
+
+ Pressure Zone Information
+
+   1 Volume: 9.2800E-01 m3, Cells: 928, Mesh: 1, Indices: (10,10,10)
+ 
+ 
+
+ Run Time Diagnostics
+
+       Time Step        1   November  4, 2026  12:46:54
+       Step Size:  0.160E+00 s, Total Time:    0.15966 s
+       Pressure Iterations: 1
+       Maximum Velocity Error:  0.22E-02 on Mesh 1 at (6,6,2)
+       Maximum Pressure Error:  0.29E-05 on Mesh 1 at (6,9,7)
+       Maximum CFL Number    :  0.35E-01 on Mesh 1 at (5,6,3)
+       Maximum VN Number     :  0.31E-01 on Mesh 1 at (1,6,6)
+       ---------------------------------------------------------------
+       Max CFL number:  0.35E-01 at (5,6,3)
+       Max divergence:  0.27E-05 at (10,1,9)
+       Min divergence: -0.55E-05 at (4,5,5)
+       Max VN number :  0.31E-01 at (1,6,6)
+ 
+       Time Step        2   November  4, 2026  12:46:54
+       Step Size:  0.160E+00 s, Total Time:    0.31933 s
+       Pressure Iterations: 1
+       Maximum Velocity Error:  0.13E-02 on Mesh 1 at (6,8,6)
+       Maximum Pressure Error:  0.21E-05 on Mesh 1 at (6,9,7)
+       Maximum CFL Number    :  0.35E-01 on Mesh 1 at (2,3,6)
+       Maximum VN Number     :  0.55E-01 on Mesh 1 at (4,3,6)
+       ---------------------------------------------------------------
+       Max CFL number:  0.35E-01 at (2,3,6)
+       Max divergence:  0.27E-05 at (10,1,9)
+       Min divergence: -0.56E-05 at (4,5,5)
+       Max VN number :  0.55E-01 at (4,3,6)
+ 
+       Time Step        3   November  4, 2026  12:46:54
+       Step Size:  0.160E+00 s, Total Time:    0.47899 s
+       Pressure Iterations: 1
+       Maximum Velocity Error:  0.84E-03 on Mesh 1 at (6,6,2)
+       Maximum Pressure Error:  0.85E-06 on Mesh 1 at (6,9,7)
+       Maximum CFL Number    :  0.34E-01 on Mesh 1 at (2,3,6)
+       Maximum VN Number     :  0.55E-01 on Mesh 1 at (4,3,6)
+       ---------------------------------------------------------------
+       Max CFL number:  0.34E-01 at (2,3,6)
+       Max divergence:  0.22E-05 at (8,2,2)
+       Min divergence: -0.40E-05 at (4,5,5)
+       Max VN number :  0.55E-01 at (4,3,6)
+ 
+       Time Step        4   November  4, 2026  12:46:54
+       Step Size:  0.160E+00 s, Total Time:    0.63866 s
+       Pressure Iterations: 1
+       Maximum Velocity Error:  0.18E-03 on Mesh 1 at (6,7,2)
+       Maximum Pressure Error:  0.19E-06 on Mesh 1 at (7,7,3)
+       Maximum CFL Number    :  0.34E-01 on Mesh 1 at (2,3,6)
+       Maximum VN Number     :  0.55E-01 on Mesh 1 at (4,3,6)
+       ---------------------------------------------------------------
+       Max CFL number:  0.34E-01 at (2,3,6)
+       Max divergence:  0.21E-05 at (8,2,2)
+       Min divergence: -0.40E-05 at (4,5,5)
+       Max VN number :  0.55E-01 at (4,3,6)
+ 
+       Time Step        5   November  4, 2026  12:46:54
+       Step Size:  0.160E+00 s, Total Time:    0.79832 s
+       Pressure Iterations: 1
+       Maximum Velocity Error:  0.63E-04 on Mesh 1 at (6,6,2)
+       Maximum Pressure Error:  0.84E-07 on Mesh 1 at (7,6,4)
+       Maximum CFL Number    :  0.34E-01 on Mesh 1 at (2,3,6)
+       Maximum VN Number     :  0.54E-01 on Mesh 1 at (4,3,6)
+       ---------------------------------------------------------------
+       Max CFL number:  0.34E-01 at (2,3,6)
+       Max divergence:  0.21E-05 at (8,2,2)
+       Min divergence: -0.40E-05 at (4,5,5)
+       Max VN number :  0.54E-01 at (4,3,6)
+ 
+       Time Step        6   November  4, 2026  12:46:54
+       Step Size:  0.160E+00 s, Total Time:    0.95799 s
+       Pressure Iterations: 1
+       Maximum Velocity Error:  0.58E-04 on Mesh 1 at (6,7,3)
+       Maximum Pressure Error:  0.63E-07 on Mesh 1 at (6,6,1)
+       Maximum CFL Number    :  0.34E-01 on Mesh 1 at (2,3,6)
+       Maximum VN Number     :  0.54E-01 on Mesh 1 at (4,3,6)
+       ---------------------------------------------------------------
+       Max CFL number:  0.34E-01 at (2,3,6)
+       Max divergence:  0.17E-05 at (8,2,2)
+       Min divergence: -0.26E-05 at (4,5,5)
+       Max VN number :  0.54E-01 at (4,3,6)
+ 
+       Time Step        7   November  4, 2026  12:46:54
+       Step Size:  0.160E+00 s, Total Time:    1.11765 s
+       Pressure Iterations: 1
+       Maximum Velocity Error:  0.19E-04 on Mesh 1 at (6,5,2)
+       Maximum Pressure Error:  0.26E-07 on Mesh 1 at (5,5,3)
+       Maximum CFL Number    :  0.33E-01 on Mesh 1 at (2,3,6)
+       Maximum VN Number     :  0.53E-01 on Mesh 1 at (4,3,6)
+       ---------------------------------------------------------------
+       Max CFL number:  0.33E-01 at (2,3,6)
+       Max divergence:  0.17E-05 at (8,2,2)
+       Min divergence: -0.26E-05 at (4,5,5)
+       Max VN number :  0.53E-01 at (4,3,6)
+ 
+       Time Step        8   November  4, 2026  12:46:54
+       Step Size:  0.160E+00 s, Total Time:    1.27732 s
+       Pressure Iterations: 1
+       Maximum Velocity Error:  0.81E-05 on Mesh 1 at (4,4,3)
+       Maximum Pressure Error:  0.11E-07 on Mesh 1 at (4,4,3)
+       Maximum CFL Number    :  0.33E-01 on Mesh 1 at (3,9,6)
+       Maximum VN Number     :  0.53E-01 on Mesh 1 at (4,3,6)
+       ---------------------------------------------------------------
+       Max CFL number:  0.33E-01 at (3,9,6)
+       Max divergence:  0.17E-05 at (8,2,2)
+       Min divergence: -0.26E-05 at (4,5,5)
+       Max VN number :  0.53E-01 at (4,3,6)
+ 
+       Time Step        9   November  4, 2026  12:46:54
+       Step Size:  0.160E+00 s, Total Time:    1.43698 s
+       Pressure Iterations: 1
+       Maximum Velocity Error:  0.95E-05 on Mesh 1 at (6,6,2)
+       Maximum Pressure Error:  0.13E-07 on Mesh 1 at (5,6,1)
+       Maximum CFL Number    :  0.33E-01 on Mesh 1 at (3,9,6)
+       Maximum VN Number     :  0.53E-01 on Mesh 1 at (4,3,6)
+       ---------------------------------------------------------------
+       Max CFL number:  0.33E-01 at (3,9,6)
+       Max divergence:  0.14E-05 at (8,2,2)
+       Min divergence: -0.14E-05 at (4,5,5)
+       Max VN number :  0.53E-01 at (4,3,6)
+ 
+       Time Step       10   November  4, 2026  12:46:54
+       Step Size:  0.160E+00 s, Total Time:    1.59665 s
+       Pressure Iterations: 1
+       Maximum Velocity Error:  0.39E-05 on Mesh 1 at (6,5,2)
+       Maximum Pressure Error:  0.61E-08 on Mesh 1 at (5,6,1)
+       Maximum CFL Number    :  0.33E-01 on Mesh 1 at (3,9,6)
+       Maximum VN Number     :  0.52E-01 on Mesh 1 at (4,3,6)
+       ---------------------------------------------------------------
+       Max CFL number:  0.33E-01 at (3,9,6)
+       Max divergence:  0.14E-05 at (8,2,2)
+       Min divergence: -0.14E-05 at (4,5,5)
+       Max VN number :  0.52E-01 at (4,3,6)
+ 
+       Time Step       13   November  4, 2026  12:46:54
+       Step Size:  0.840E-01 s, Total Time:    2.00000 s
+       Pressure Iterations: 1
+       Maximum Velocity Error:  0.66E-06 on Mesh 1 at (6,4,6)
+       Maximum Pressure Error:  0.16E-08 on Mesh 1 at (4,4,5)
+       Maximum CFL Number    :  0.17E-01 on Mesh 1 at (3,9,6)
+       Maximum VN Number     :  0.27E-01 on Mesh 1 at (4,3,6)
+       ---------------------------------------------------------------
+       Max CFL number:  0.17E-01 at (3,9,6)
+       Max divergence:  0.13E-05 at (8,2,2)
+       Min divergence: -0.12E-05 at (4,5,9)
+       Max VN number :  0.27E-01 at (4,3,6)
+ 
+
+
+ DEVICE Activation Times
+
+         1    DEVC_DOOR_TIME            F           1.118
+
+
+ CONTROL Activation Times
+
+
+Device number Device ID                 Final State Final activiation time (s)
+
+         1    CTRL_DOOR                 T         0.00000
+
+
+ Time Stepping Wall Clock Time (s):        0.050
+ Total Elapsed Wall Clock Time (s):        0.768
+
+STOP: FDS completed successfully (CHID: door_closed)

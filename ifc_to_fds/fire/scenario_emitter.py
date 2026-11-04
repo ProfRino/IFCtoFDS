@@ -9,9 +9,9 @@ from __future__ import annotations
 import hashlib
 import math
 import re
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Literal, Optional, Tuple, Union
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ifc_to_fds.domain.mapping import MappingPlan
 from ifc_to_fds.fire.ev_library import EV_LIBRARY_VERSION, EVPreset, load_ev_preset
@@ -40,9 +40,11 @@ def format_xb(xb: List[float] | Tuple[float, ...]) -> str:
 
 
 class EVSelection(BaseModel):
+    model_config = ConfigDict(allow_inf_nan=False)
+
     preset_id: str
     position: Tuple[float, float, float]
-    ignition_delay_s: float = 0.0
+    ignition_delay_s: float = Field(default=0.0, ge=0)
     dimensions: Optional[Tuple[float, float, float]] = None
     pack_kwh: Optional[float] = None
     peak_hrr_mw: Optional[float] = None
@@ -97,6 +99,8 @@ def escape_fds_string(val: Any) -> str:
 
 
 class DeviceSelection(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
     id: str
     device_type: str
     position: Tuple[float, float, float]
@@ -121,9 +125,19 @@ class DeviceSelection(BaseModel):
 
 
 class OpeningEvent(BaseModel):
-    entity_key: str
-    state: str
-    event_time_s: float
+    model_config = ConfigDict(extra="forbid")
+
+    entity_key: str = Field(min_length=1)
+    state: Literal["OPEN", "CLOSED"]
+    event_time_s: float = Field(ge=0, allow_inf_nan=False)
+
+
+def opening_timer_id(entity_key: str) -> str:
+    return f"DEVC_{opening_control_key(entity_key)}_TIME"
+
+
+def opening_control_id(entity_key: str) -> str:
+    return f"CTRL_{opening_control_key(entity_key)}"
 
 
 class ScenarioBundle(BaseModel):
@@ -137,6 +151,7 @@ class ScenarioBundle(BaseModel):
     ev_selections: List[EVSelection] = Field(default_factory=list)
     devices: List[DeviceSelection] = Field(default_factory=list)
     opening_events: List[OpeningEvent] = Field(default_factory=list)
+    hf_preset_yields: dict[str, tuple[float, float]] = Field(default_factory=dict)
 
 
 def _resolve_preset(preset_id: str) -> EVPreset:
@@ -158,6 +173,8 @@ def _normalize_opening_events(opening_states: Any) -> List[OpeningEvent]:
                 events.append(item)
             elif isinstance(item, dict):
                 events.append(OpeningEvent.model_validate(item))
+            else:
+                raise ValueError("Opening events must be objects")
         return events
     if isinstance(opening_states, dict):
         for key, val in opening_states.items():
@@ -178,7 +195,12 @@ def _normalize_opening_events(opening_states: Any) -> List[OpeningEvent]:
                         events.append(item)
                     elif isinstance(item, dict):
                         events.append(OpeningEvent.model_validate(item))
-    return events
+                    else:
+                        raise ValueError("Opening events must be objects")
+            else:
+                raise ValueError(f"Invalid opening event for {key}")
+        return events
+    raise ValueError("Opening states must be a list or an object")
 
 
 def emit_fire_scenario(
@@ -210,6 +232,20 @@ def emit_fire_scenario(
         for d in (devices or [])
     ]
     normalized_opening_events = _normalize_opening_events(opening_states)
+    opening_bounds = {}
+    for event in normalized_opening_events:
+        if event.entity_key in opening_bounds:
+            raise ValueError("Multiple events for one opening require an explicit control schedule")
+        decision = mapping_plan.get_decision(event.entity_key)
+        bounds = (decision.representation_bounds or decision.element_bounds) if decision else None
+        if bounds is None:
+            raise ValueError(f"Opening event has no mapped bounds: {event.entity_key}")
+        if decision.fds_representation != "OBST":
+            raise ValueError(f"Dynamic opening requires one OBST fill: {event.entity_key}")
+        xb = bounds.to_xb()
+        if any(not math.isfinite(v) for v in xb) or any(xb[i] >= xb[i + 1] for i in (0, 2, 4)):
+            raise ValueError(f"Invalid opening bounds: {event.entity_key}")
+        opening_bounds[event.entity_key] = xb
 
     resolved_presets: Dict[str, EVPreset] = {}
     ev_configs: List[Dict[str, Any]] = []
@@ -328,10 +364,6 @@ def emit_fire_scenario(
             cfg["actual_peak_hrr"] * ((cfg["preset"].yields.soot[0] + cfg["preset"].yields.soot[1]) / 2.0)
             for cfg in ev_configs
         ) / total_hrr
-        weighted_hf = sum(
-            cfg["actual_peak_hrr"] * ((cfg["preset"].yields.hf[0] + cfg["preset"].yields.hf[1]) / 2.0)
-            for cfg in ev_configs
-        ) / total_hrr
 
         composite_reac_id = "REAC_COMPOSITE_EV" if len(resolved_presets) > 1 else clean_fds_id(f"REAC_{list(resolved_presets.values())[0].preset_id.upper()}")
         composite_fuel_id = clean_fds_id(f"OFFGAS_{composite_reac_id}")
@@ -342,8 +374,6 @@ def emit_fire_scenario(
             f"&REAC ID='{composite_reac_id}', FUEL='{composite_fuel_id}', C=2.0, H=4.0, O=1.0, "
             f"CO_YIELD={weighted_co:.4f}, SOOT_YIELD={weighted_soot:.4f} /"
         )
-        lines.append(f"! Passive tracer for battery toxic offgas (effective Y_HF={weighted_hf:.4f})")
-        lines.append("&SPEC ID='HYDROGEN FLUORIDE' /")
         lines.append("")
 
     # 2. EV Fire Sources: RAMP, SURF, OBST, VENT
@@ -373,7 +403,7 @@ def emit_fire_scenario(
 
         # Standard T-squared RAMP calculation: Q(t) = 1055 * (t / t_alpha)^2 (kW)
         # At peak: Q_peak = 1055 * (t_growth / t_alpha)^2 => t_growth = t_alpha * sqrt(Q_peak / 1055)
-        t_delay = max(0.0, float(ev.ignition_delay_s))
+        t_delay = round(ev.ignition_delay_s, 2)
         t_alpha = (preset.t_alpha_s[0] + preset.t_alpha_s[1]) / 2.0
         q_peak_kw = actual_peak_hrr * 1000.0
         t_growth = max(1.0, t_alpha * math.sqrt(max(0.001, q_peak_kw / 1055.0)))
@@ -450,56 +480,25 @@ def emit_fire_scenario(
     if normalized_opening_events:
         lines.append("! --- Opening & Boundary Controls ---")
         for ev_open in normalized_opening_events:
-            # Source-qualified keys share a hash prefix; keep entity identity.
-            clean_key = opening_control_key(ev_open.entity_key)
-            timer_devc_id = f"DEVC_{clean_key}_TIME"
-            ctrl_id = clean_fds_id(f"CTRL_{clean_key}")
-
-            # Check if mapping plan contains bounds for this entity
-            decision = mapping_plan.get_decision(ev_open.entity_key)
-            xb = None
-            if decision:
-                if decision.representation_bounds is not None:
-                    xb = decision.representation_bounds.to_xb()
-                elif getattr(decision, "element_bounds", None) is not None:
-                    elem_b = decision.element_bounds
-                    if elem_b is not None:
-                        xb = elem_b.to_xb()
-
-            if xb is not None:
-                # FDS User Guide Section 15.3:
-                # Obstructions with CTRL_ID are removed when control evaluates to .TRUE.
-                # - OPEN event at t_event: closed initially (OBST present), removed at t_event -> door OPENS.
-                # - CLOSED event at t_event: DEVC with INITIAL_STATE=.TRUE. starts .TRUE. (OBST removed / door open),
-                #   and transitions to .FALSE. at SETPOINT (OBST appears / door closes). Works on both &OBST and &GEOM.
-                if ev_open.state == "OPEN":
-                    lines.append(
-                        f"&DEVC ID='{timer_devc_id}', QUANTITY='TIME', SETPOINT={ev_open.event_time_s:.2f} /"
-                    )
-                    lines.append(
-                        f"&CTRL ID='{ctrl_id}', FUNCTION_TYPE='ANY', INPUT_ID='{timer_devc_id}' /"
-                    )
-                    lines.append(
-                        f"&OBST XB={format_xb(xb)}, SURF_ID='INERT', CTRL_ID='{ctrl_id}' /"
-                    )
-                elif ev_open.state == "CLOSED":
-                    lines.append(
-                        f"&DEVC ID='{timer_devc_id}', QUANTITY='TIME', SETPOINT={ev_open.event_time_s:.2f}, INITIAL_STATE=.TRUE. /"
-                    )
-                    lines.append(
-                        f"&CTRL ID='{ctrl_id}', FUNCTION_TYPE='ANY', INPUT_ID='{timer_devc_id}' /"
-                    )
-                    lines.append(
-                        f"&OBST XB={format_xb(xb)}, SURF_ID='INERT', CTRL_ID='{ctrl_id}' /"
-                    )
-            else:
-                lines.append(
-                    f"&DEVC ID='{timer_devc_id}', QUANTITY='TIME', SETPOINT={ev_open.event_time_s:.2f} /"
-                )
-                lines.append(
-                    f"&CTRL ID='{ctrl_id}', FUNCTION_TYPE='ANY', INPUT_ID='{timer_devc_id}' /"
-                )
-                lines.append(f"! Note: Opening '{ev_open.entity_key}' bounds not present in mapping plan")
+            timer_devc_id = opening_timer_id(ev_open.entity_key)
+            ctrl_id = opening_control_id(ev_open.entity_key)
+            xb = opening_bounds[ev_open.entity_key]
+            xyz = ",".join(repr(xb[i] + (xb[i + 1] - xb[i]) / 2) for i in (0, 2, 4))
+            # FDS 6.11.1: OBST is removed when control evaluates to .FALSE.
+            # OPEN: door starts closed (.TRUE.), opens (.FALSE.) when timer activates.
+            # CLOSED: door starts open (.FALSE.), closes (.TRUE.) when timer activates.
+            initial = ".TRUE." if ev_open.state == "OPEN" else ".FALSE."
+            lines.append(
+                f"&DEVC ID='{timer_devc_id}', XYZ={xyz}, QUANTITY='TIME', "
+                f"SETPOINT={ev_open.event_time_s!r} /"
+            )
+            lines.append(
+                f"&CTRL ID='{ctrl_id}', FUNCTION_TYPE='ANY', INPUT_ID='{timer_devc_id}', "
+                f"INITIAL_STATE={initial} /"
+            )
+            lines.append(
+                f"&OBST XB={format_xb(xb)}, SURF_ID='INERT', CTRL_ID='{ctrl_id}' /"
+            )
             lines.append("")
 
     fds_fragment = "\n".join(lines)
@@ -528,6 +527,7 @@ def emit_fire_scenario(
         bundle_sha256=bundle_sha256,
         ev_library_version=EV_LIBRARY_VERSION,
         ev_library_digest=lib_digest,
+        hf_preset_yields={key: preset.yields.hf for key, preset in resolved_presets.items()},
         fds_fragment=fds_fragment,
         total_peak_hrr_mw=round(total_peak_hrr_mw, 6),
         ev_count=len(normalized_evs),

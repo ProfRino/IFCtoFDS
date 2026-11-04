@@ -8,11 +8,13 @@
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB)](pyproject.toml)
 [![License](https://img.shields.io/badge/License-AGPL--3.0--or--later-blue)](LICENSE)
 
-**Phiên bản mã nguồn:** 0.5.0 · **Cập nhật hướng dẫn:** 02/11/2026
+**Phiên bản mã nguồn:** 0.5.0 · **Cập nhật hướng dẫn:** 03/11/2026
 
 [English README](README.en.md) · [Hướng dẫn HVAC chuyên sâu](docs/HVAC_NETWORK_IMPLEMENTATION.md) · [Changelog](CHANGELOG.md) · [Báo lỗi](https://github.com/fire-digital-twin-lab/IFCtoFDS/issues)
 
 Bản tiếng Anh có thể chưa phản ánh đầy đủ các cập nhật HVAC/scenario trong hướng dẫn tiếng Việt này.
+
+Đợt sửa ngày 03/11/2026: [kế hoạch và chuẩn đầu vào/đầu ra](docs/CONVERSION_REPAIR_PLAN_2026-11-03.md), [kết quả đối chiếu từng tiêu chí](docs/CONVERSION_REPAIR_VERIFICATION_2026-11-03.md).
 
 ![Workbench với mô hình KIT FZK Haus](demo/readme/workbench.png)
 
@@ -71,7 +73,7 @@ Các đầu ra chính:
 | Kịch bản EV | Preset, REAC/RAMP, nguồn cháy, thiết bị đo, sự kiện và batch | Sinh file và kiểm tra lưới; chưa phải bộ chạy batch CFD hoàn chỉnh |
 | Miền nhiều mesh | Chia miền khi vượt ngưỡng cell mỗi mesh | Chia mesh không tự chứng minh hiệu quả MPI hoặc độ hội tụ nghiệm |
 | Job và artifact | Hàng đợi, hủy, timeout, giám sát bộ nhớ, checkpoint, checksum | Tác vụ xử lý xong không đồng nghĩa mô hình đạt kiểm định |
-| Kiểm tra FDS | Adapter chạy solver được ghim phiên bản, lưu bằng chứng | Effective geometry hiện giới hạn ở OBST trên một mesh |
+| Kiểm tra FDS | Adapter chạy solver được ghim phiên bản, lưu bằng chứng | Effective geometry hỗ trợ OBST tĩnh trên các mesh đều, không chồng nhau |
 | Đối chứng công trình | Workflow tạo/check reference và approval | Reference B1/B2 trong repo còn DRAFT; tạo candidate không phải phê duyệt |
 
 **Mốc kiểm thử ngày 02/11/2026:** 471 bài Python qua trong bộ mặc định; 13 script JavaScript qua; 4 ca chạy với FDS 6.11.1 qua, gồm khởi tạo mạng HVAC có đầu AMBIENT và đầu VENT nối CFD. Các ca này không xác nhận lưu lượng/áp suất hút khói cho một công trình thực tế. Chưa thực hiện nhập trực tiếp bằng ứng dụng PyroSim trong đợt kiểm tra này.
@@ -191,6 +193,8 @@ python -m ifc_to_fds serve --port 8000
 
 Đặt biến trước khi khởi động server. Với CLI `convert`, truyền `--solver` như mục 11. Linux/macOS cần binary phù hợp hệ điều hành và đường dẫn tương ứng; script Windows không dùng cho các nền tảng đó. Xem [bản phát hành FDS 6.11.1](https://github.com/firemodels/fds/releases/tag/FDS-6.11.1) và [tài liệu FDS/Smokeview](https://pages.nist.gov/fds-smv/manuals.html).
 
+Khi không đặt executable tường minh, chương trình tìm `fds` trong PATH rồi kiểm tra bản Windows 6.11.1 đã cài tại `.deps` với đúng checksum. Đường dẫn tường minh sai không bị thay thế âm thầm. Đặt `IFCFDS_SOLVER_AUTODISCOVERY=0` nếu muốn tắt dò tự động; executable tường minh vẫn có hiệu lực. Xem [cách tìm solver và bằng chứng](docs/SOLVER_READINESS.md). Tìm được FDS không tự giải quyết các giới hạn kiểm chứng effective geometry cho GEOM/HOLE/VENT.
+
 <a id="vi-du-dau-tien"></a>
 
 ## 5. Chạy ví dụ đầu tiên
@@ -272,6 +276,8 @@ Preview có thể dùng web-ifc, backend preview hoặc luồng legacy tùy môi
 
 Chọn tầng không có nghĩa mọi cấu kiện qua ranh giới sẽ được cắt tự động. Phần tử biên có thể được giữ lại hoặc chờ kiểm định.
 
+Miền cố định gắn với tập IFC đang chọn. Khi đổi nguồn, miền cũ bị tắt/xóa; chỉ khai báo lại nếu cần. Các ô miền phải có đủ sáu số hữu hạn và min < max. Miền gợi ý giữ độ chính xác của bounds nguồn; không làm tròn vào trong. Tải một IFC khác vào viewer không được ghi đè miền đã chỉnh của bộ nguồn Verified hiện tại.
+
 ### 6.4. Chọn profile
 
 | Giá trị | Nhãn giao diện | Dùng khi nào |
@@ -294,6 +300,8 @@ Bấm `Run Verified Mapping`. Khi hoàn thành, đọc báo cáo theo mục 10 r
 ### 6.6. Quick Preview/Quick Export
 
 Luồng JavaScript phục vụ xem và xuất nhanh theo tập biểu diễn được hỗ trợ. Các tùy chọn voxel/hybrid/review solids khác chính sách Verified Python. File có hậu tố legacy/quick preview không mang kết luận MAPPING_VERIFIED chỉ vì xuất được.
+
+Mô hình do backend nạp để xem trước không chứa mesh đầy đủ trong object xuất nhanh, nên nút Quick bị khóa kể cả sau đổi tùy chọn/xóa/Undo. Dùng **Run Verified Mapping** cho nguồn đó. Nếu mesh GEOM thiếu/sai, bộ xuất trả diagnostic có định danh phần tử thay vì tự dựng khối hộp hoặc bỏ qua phần tử.
 
 <a id="nhieu-ifc"></a>
 
@@ -488,7 +496,7 @@ Backend tạo phản ứng đơn/composite, RAMP, SURF, vật thể xe và VENT 
 
 Tỷ số này không tự chứng minh hội tụ lưới hoặc tính đúng vật lý. `mesh_status=PASS` và `simulation_status=NOT_RUN` có thể cùng xuất hiện.
 
-`scenario.fds` chứa nền và kịch bản; T_END được mở rộng theo RAMP/thời gian yêu cầu. `model.fds` nền được giữ riêng. Khai báo SPEC HF chưa phải nguồn HF định lượng; lan truyền thermal runaway giữa module pin và sprinkler chưa được tự động mô hình hóa đầy đủ.
+`scenario.fds` chứa nền và kịch bản. T_END giữ thời gian nền dài hơn và bao phủ RAMP, sự kiện cửa và thời gian yêu cầu. Kết quả kịch bản ghi SHA-256 của file cuối và tách `mesh_status`, `physics_status`, `simulation_status`. Ngân sách năng lượng cháy toàn bộ xe có thể khai báo qua `energy_budget` với `scope: WHOLE_VEHICLE_FLEET`, `battery_chemical_energy_mj`, `other_vehicle_energy_mj` và `source`. Thiếu ngân sách có nguồn thì đánh giá năng lượng là `INCONCLUSIVE`. HF hiện có trạng thái `NOT_MODELED`.
 
 Sự kiện cửa yêu cầu một fill OBST của IfcDoor/IfcWindow có thật trong manifest. Điều khiển gắn vào vật thể gốc, giữ ID/hình học/SURF. Cửa GEOM hoặc nhiều sự kiện trên cùng cửa chưa được hỗ trợ trong composer.
 
@@ -556,6 +564,21 @@ Ví dụ rút gọn để đọc ý nghĩa, không phải schema đầy đủ:
 
 Mapping có thể được xác minh khi solver/effective geometry chưa đủ bằng chứng vì các gate mô phỏng được xét riêng. Policy boundary cụ thể vẫn có thể cần solver để hoàn tất. Thiếu FDS không mặc nhiên chặn mọi lượt mapping.
 
+`FDS written` là số đã ghi ra file; `compared_entities` là số đã hoàn tất đo so sánh; `verified_entities` là số đạt phép so sánh. `not_compared_entities` không có nghĩa đối tượng đó đã được chứng minh sai. Báo cáo còn tách lần so sánh lỗi, không đủ bằng chứng và bị bỏ qua do preflight.
+
+Profile `geometry-fidelity` dừng các phép so sánh còn lại khi nguồn lỗi topology. Để thu thập thêm kết quả cục bộ cho các đối tượng đủ điều kiện, dùng CLI/API với cấu hình:
+
+```json
+{
+  "profile": "geometry-fidelity",
+  "audit": {
+    "collect_partial_geometry_evidence": true
+  }
+}
+```
+
+Chế độ này vẫn giữ kết luận từ chối/chưa đủ bằng chứng của cả bộ và chặn các kiểm tra toàn cục phụ thuộc. Nó không làm solver chạy qua preflight lỗi. Với lưới nguồn, chương trình chỉ chuẩn hóa hướng mặt/seam số học trong ngân sách tối đa `min(8 ULP, 1e-12 m)`, ghi `raw_quality` và proof tại `geometry_diagnostics.normalization`. Lỗ mở không dựng được, mặt hở thật và non-manifold vẫn phải được xử lý riêng; chuẩn hóa không tự cấp PASS cho hình học/khói/mô phỏng.
+
 ### 10.4. Các nhóm gate
 
 | Nhóm | Gate thường gặp |
@@ -567,7 +590,7 @@ Mapping có thể được xác minh khi solver/effective geometry chưa đủ b
 | Đối chứng | golden_reference_parity và gate/schema khi áp dụng |
 | Solver/mô phỏng | solver, effective_geometry, mesh_resolution; physics, scenario, operational_model theo profile |
 
-Tập gate thay đổi theo điều kiện; đọc báo cáo thực tế thay vì một tổng số cố định. Effective geometry hiện chỉ hỗ trợ OBST trên một mesh; GEOM/multi-mesh có thể còn chưa kết luận.
+Tập gate thay đổi theo điều kiện. Effective geometry kiểm tra OBST tĩnh trên mesh đều và không chồng nhau. GEOM, HOLE, VENT và vật cản động trả `INCONCLUSIVE`.
 
 ### 10.5. Kiểm tra checksum bằng PowerShell
 
@@ -894,6 +917,8 @@ Script tạo thư mục mới `scripts/out/logic-review-...`, in đường dẫn
 | HVAC requires ... | Loại IFC, phân loại, port, thông số | Bổ sung cấu hình; thiết bị chưa hỗ trợ cần adapter |
 | VENT bị từ chối | Mặt, port, diện tích, miền | Chọn mặt OBST/MESH hợp lệ; GEOM coupling chưa hỗ trợ |
 | Geometry/traceability FAIL | Findings và entity_key | Kiểm tra nguồn và bộ file; sửa theo bằng chứng |
+| Quick báo thiếu mesh hoặc chỉ có backend preview | Diagnostic code/name, entityId và nguồn đang xem | Dùng Verified; không thay mesh thiếu bằng bbox |
+| Đổi IFC rồi xuất thiếu cấu kiện | Miền cố định có thuộc đúng nguồn không | Khai báo lại miền theo mô hình mới; xem withheld/pending và các số đã so sánh |
 | PENDING_VALIDATION | Phần tử biên và policy | Điều chỉnh miền hợp lý hoặc bổ sung bằng chứng biên |
 | Thiếu solver/effective evidence | Binary, phiên bản, log, loại mesh | Cấu hình FDS đúng, đọc giới hạn adapter/profile |
 | Không tìm được verified base | Hash, trạng thái nền, job root | Tạo nền cùng backend, lấy hash manifest, giữ đủ artifact |

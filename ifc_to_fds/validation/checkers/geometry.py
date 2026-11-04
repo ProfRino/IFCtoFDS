@@ -8,12 +8,13 @@ from ifc_to_fds.domain.validation.model import Finding, GateResult, GateStatus, 
 from ifc_to_fds.geometry.mesh import bounds_for_vertices, valid_solid
 from ifc_to_fds.mapping.boundary import target_mesh
 from ifc_to_fds.validation.metrics import compare_solids
+from ifc_to_fds.validation.preflight import comparison_summary, invalid_source_solids
 
 
 class GeometryChecker:
     name = "geometry"
 
-    def check(self, context: ValidationContext, parsed: Any = None) -> CheckerOutcome:
+    def check(self, context: ValidationContext, parsed: Any = None, *, invalid_source=None) -> CheckerOutcome:
         parsed = parsed if parsed is not None else context.parsed
         model = context.model
         if parsed is None or model is None:
@@ -29,8 +30,12 @@ class GeometryChecker:
         findings: List[Finding] = []
         element_statuses: Dict[str, str] = {}
         metrics_dict: Dict[str, Any] = {}
-        status = GateStatus.PASS
-        reasons = []
+        invalid = invalid_source_solids(model) if invalid_source is None else invalid_source
+        blocked = bool(config and config.fail_fast_on_source_errors and invalid)
+        skip = blocked and not config.collect_partial_geometry_evidence
+        status = GateStatus.FAIL if blocked else GateStatus.PASS
+        reasons = ["Source topology preflight rejected"] if blocked else []
+        attempted, completed, skipped, failed, inconclusive, deviated = (set() for _ in range(6))
 
         domains = [r.values.get("XB") for r in parsed.records if r.kind == "MESH"]
         primitives: Dict[str, List[Any]] = {}
@@ -139,8 +144,14 @@ class GeometryChecker:
                 )
                 continue
 
+            if skip:
+                element_statuses[key] = "INCONCLUSIVE"
+                skipped.add(key)
+                continue
+            attempted.add(key)
             try:
                 m = compare_solids(target_mesh(e), meshes)
+                completed.add(key)
                 metrics_dict[key] = m
                 surface_tol = config.surface_tolerance_m if config else 0.001
                 vol_tol = config.relative_volume_tolerance if config else 0.001
@@ -153,6 +164,7 @@ class GeometryChecker:
                     or m["reference_components"] != m["output_components"]
                 )
                 if fail:
+                    deviated.add(key)
                     status = GateStatus.FAIL
                     findings.append(
                         Finding(
@@ -166,6 +178,7 @@ class GeometryChecker:
                     )
                     element_statuses[key] = "DEVIATED"
                 elif not m["surface_proven"]:
+                    inconclusive.add(key)
                     if status != GateStatus.FAIL:
                         status = GateStatus.INCONCLUSIVE
                     reasons.append(f"Full surface distance not proven for {key}")
@@ -173,6 +186,7 @@ class GeometryChecker:
                 else:
                     element_statuses[key] = "MATCHED"
             except ValueError as exc:
+                failed.add(key)
                 status = GateStatus.FAIL
                 findings.append(
                     Finding(
@@ -186,15 +200,35 @@ class GeometryChecker:
                 )
                 element_statuses[key] = "DEVIATED"
             except Exception as exc:
+                inconclusive.add(key)
                 if status != GateStatus.FAIL:
                     status = GateStatus.INCONCLUSIVE
                 reasons.append(f"{key}: solid comparison failed: {exc}")
                 element_statuses[key] = "INCONCLUSIVE"
 
+        mode = "FAIL_FAST" if skip else "PARTIAL" if blocked else "FULL"
+        summary, export_coverage = comparison_summary(
+            parsed, primitives, invalid, mode=mode,
+            verified=sum(value == "MATCHED" for value in element_statuses.values()),
+            attempted=attempted, completed=completed, skipped=skipped,
+            failed=failed, inconclusive=inconclusive, deviated=deviated,
+        )
+        metrics_dict["geometry_comparison"] = summary
+        final_reason = "; ".join(reasons)
+        if not final_reason:
+            if status == GateStatus.PASS:
+                final_reason = (
+                    f"All {len(completed)} physical solid elements verified within tolerance"
+                    if completed
+                    else "No physical solid elements to verify"
+                )
+            elif status == GateStatus.NOT_RUN:
+                final_reason = "Geometry comparison not run"
         return CheckerOutcome(
             gate_name="geometry",
-            result=GateResult(status=status, reason="; ".join(reasons)),
+            result=GateResult(status=status, reason=final_reason),
             findings=findings,
             metrics=metrics_dict,
             element_statuses=element_statuses,
+            coverage={"fds_export": export_coverage},
         )

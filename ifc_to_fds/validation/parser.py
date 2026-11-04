@@ -15,6 +15,7 @@ class FDSRecord:
     kind: str
     values: dict[str, list[Any]]
     source: dict = field(default_factory=dict)
+    text_span: tuple[int, int] | None = field(default=None, compare=False, repr=False)
 
     @property
     def id(self):
@@ -84,11 +85,19 @@ def parse_fds(text):
     record = ""
     quote = None
     active = False
+    start = 0
     i = 0
     seen = set()
     allowed = {
         "HEAD": {"CHID", "TITLE"},
-        "TIME": {"T_END"},
+        "TIME": {
+            "T_END",
+            "T_BEGIN",
+            "DT",
+            "TIME_SHRINK_FACTOR",
+            "WALL_INCREMENT",
+            "LOCK_TIME_STEP",
+        },
         "MESH": {"ID", "IJK", "XB"},
         "SURF": {
             "ID",
@@ -135,6 +144,7 @@ def parse_fds(text):
             "ID",
             "FUNCTION_TYPE",
             "INPUT_ID",
+            "INITIAL_STATE",
             "LATCH",
             "DELAY",
             "CONSTANT",
@@ -232,6 +242,7 @@ def parse_fds(text):
             if active:
                 parsed.errors.append("Unterminated namelist")
             active = True
+            start = i
             record = ""
         elif c == "/" and active:
             try:
@@ -269,7 +280,7 @@ def parse_fds(text):
                     parsed.unsupported.extend(
                         f"{kind}.{k}" for k in values if k not in allowed[kind]
                     )
-                r = FDSRecord(kind, values, source)
+                r = FDSRecord(kind, values, source, (start, i + 1))
                 if r.id and kind != "RAMP":
                     identity = (
                         (kind, tuple(values.get("TYPE_ID", [])))

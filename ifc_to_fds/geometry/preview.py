@@ -19,6 +19,7 @@ from ifc_to_fds.geometry.engine import (
 )
 from ifc_to_fds.geometry.mesh import bounds_for_vertices
 from ifc_to_fds.geometry.storage import payload_dir, store_mesh
+from ifc_to_fds.core.canonical import SCHEMA_VERSION
 from ifc_to_fds.geometry.package import seal
 from ifc_to_fds.diagnostics import progress
 from .preview_cache import read_preview, save_preview
@@ -142,6 +143,7 @@ def preview_model(paths, directory):
     )
     index = seal(
         dict(
+            schema_version=SCHEMA_VERSION,
             storage_format="float64-uint32-le-v1",
             units="METRE",
             coordinate_frame="COMMON_WORLD",
